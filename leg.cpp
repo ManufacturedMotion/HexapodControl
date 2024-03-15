@@ -11,6 +11,7 @@ int pwm_pins[NUM_LEGS][NUM_AXES_PER_LEG] = PWM_PINS;
 double min_pos[NUM_LEGS][NUM_AXES_PER_LEG] = MIN_POS;
 double max_pos[NUM_LEGS][NUM_AXES_PER_LEG] = MAX_POS;
 double scale_fact[NUM_LEGS][NUM_AXES_PER_LEG] = SCALE_FACT;
+_Bool reverse_axis[NUM_LEGS][NUM_AXES_PER_LEG] = REVERSE_AXIS;
 
 Leg::Leg() {
     _leg_number = 0;
@@ -20,7 +21,7 @@ void Leg::initializeAxes(uint8_t leg_number) {
     _leg_number = leg_number;
     for (uint8_t i = 0; i < NUM_AXES_PER_LEG; i++) {
         axes[i].initializePositionLimits(pwm_pins[_leg_number-1][i], min_pos[_leg_number-1][i], max_pos[_leg_number-1][i]);
-        axes[i].setMapping(zero_points[_leg_number-1][i], scale_fact[_leg_number-1][i]);
+        axes[i].setMapping(zero_points[_leg_number-1][i], scale_fact[_leg_number-1][i], reverse_axis[_leg_number-1][i]);
     }
 }
 
@@ -43,30 +44,73 @@ _Bool Leg::inverseKinematics(double x, double y, double z) {
     else {
         potential_results[0] = atan2(x,y);
     }
+    _Bool negative_theta0_flag = false;
+    // If the most direct route to the point is out of reach try negative
+    if (potential_results[0] > axes[0].getMaxPos()) {
+        double other_possibility = potential_results[0] - PI;
+        if ((other_possibility < axes[0].getMaxPos()) && (other_possibility >axes[0].getMinPos())) {
+            potential_results[0] = other_possibility;
+            negative_theta0_flag = true;
+        } 
+        else {
+            return false;
+        }
+    }
 
-    double yv = sqrt(y * y + x * x);
-    double dt = sqrt(yv * yv + z * z);
-    
-    double theta1_tool0 = atan2(yv,z);;
-    double theta1_tool1 = acos((dt * dt + _length1 * _length1 - _length2 * _length2) / (2 * dt * _length1));
-    
-    double theta2_tool = acos((_length1 * _length1 + _length2 * _length2 - dt * dt) / (2 * _length1 * _length2));
+    double x_virtual;
+    double y_virtual;
 
+    double y_virtual_planar;
+    double planar_distance;
+
+    double theta1_tool0;
+    double theta1_tool1;
+
+    double theta2_tool;
+
+    
+    x_virtual = x - _length0 * cos(potential_results[0]);
+    y_virtual = y - _length0 * sin(potential_results[0]);
+    if (!negative_theta0_flag) {
+        y_virtual_planar = sqrt(x_virtual * x_virtual + y_virtual * y_virtual);
+    }
+    else {
+        y_virtual_planar = - 1.0 * sqrt(x_virtual * x_virtual + y_virtual * y_virtual);
+    }
+    planar_distance = - 1.0 * sqrt(y_virtual_planar * y_virtual_planar + z * z);
+
+    theta1_tool0 = atan2(y_virtual_planar, z);
+    theta1_tool1 = acos((planar_distance * planar_distance + _length1 * _length1 - _length2 * _length2) / (2 * planar_distance * _length1));
+
+    theta2_tool = acos((_length1 * _length1 + _length2 * _length2 - planar_distance * planar_distance) / (2 * _length1 * _length2));
+    Serial.println(PI);
     potential_results[1] = theta1_tool0 - theta1_tool1;
     potential_results[2] = PI - theta2_tool;
-
+    Serial.printf("t1_tool0: %f; t1_tool1: %f; t2_tool: %f\n", theta1_tool0, theta1_tool1, theta2_tool);
+    Serial.printf("x_virt: %f; y_virt: %f; y_virt_planar: %f\n", x_virtual, y_virtual, y_virtual_planar);
     // potential_results[1] = theta1_tool0 + theta1_tool1;
     // potential_results[2] = -(PI - theta2_tool);
 
     for (uint8_t i = 0; i < NUM_AXES_PER_LEG; i++) {
-        if (potential_results[i] != potential_results[i])  //Check for NaN
+        if (potential_results[i] != potential_results[i]) { //Check for NaN
+            Serial.println(i);
+            Serial.println(potential_results[i]);
             return false;
+        }
     }
     
     for (uint8_t i = 0; i < NUM_AXES_PER_LEG; i++) {
-        _next_angles[i] = potential_results[i];
+        if (i == 0 && fabs(potential_results[i]) >= 0.01)
+            _next_angles[i] = potential_results[i] + _home_yaw;
+        else
+            _next_angles[i] = potential_results[i];
     }
     return true;
+}
+
+void Leg::setHomeYaw(double home_yaw) {
+    _home_yaw = home_yaw;
+    Serial.printf("Leg: %f; home yaw: %f\n", _leg_number, _home_yaw);
 }
 
 _Bool Leg::checkSafeCoords(double x, double y, double z) {
@@ -91,6 +135,7 @@ _Bool Leg::linearMove(double x,  double y, double z, double speed) {
 void Leg::moveAxes() {
     for (uint8_t i = 0; i < NUM_AXES_PER_LEG; i++) {
         axes[i].moveToPos(_next_angles[i]);
+        Serial.println(_next_angles[i]);
     }
     for (uint8_t i = 0; i < NUM_AXES_PER_LEG; i++) {
         current_angles[i] = _next_angles[i];

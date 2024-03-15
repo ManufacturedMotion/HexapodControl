@@ -17,11 +17,13 @@
 			_Bool rapidMove(double x,  double y, double z);
 			_Bool linearMove(double x,  double y, double z, double speed);
 			Axis axes[NUM_AXES_PER_LEG];
+			void setHomeYaw(double home_yaw);
 		private:
 			uint8_t _leg_number;
-			double _length0;
-			double _length1;
-			double _length2;
+			double _length0 = 63.00;
+			double _length1 = 92.00;
+			double _length2 = 157.5;
+			double _home_yaw;
 			void moveAxes();
 			_Bool checkSafeCoords(double x, double y, double z);
 			_Bool inverseKinematics(double x, double y, double z);

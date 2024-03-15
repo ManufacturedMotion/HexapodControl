@@ -42,12 +42,12 @@ uint8_t Axis::moveToPos(double pos) {
 
 uint8_t Axis::moveToPosAtSpeed(double pos, double target_speed) { //Must call runSpeed() frequently when using this function
     if (pos < _min_pos || pos > _max_pos)
-        return 255;
+        return 255; // move out of range
     double speed = target_speed;
     uint8_t retval = 0;
     if (target_speed > _max_speed) {
         speed = _max_speed;
-        retval = 1;
+        retval = 1; // move speed capped
     }
     _move_time = (fabs(getCurrentPos() - pos) / speed) * 1000;
     _start_rads = getCurrentPos();
@@ -66,15 +66,25 @@ uint8_t Axis::runSpeed() {
     return 253;
 }
 
-_Bool Axis::setMapping(double zero_pos, double map_mult) {
+_Bool Axis::setMapping(double zero_pos, double map_mult, _Bool reverse_axis) {
     _zero_pos = zero_pos;
     _map_mult = map_mult;
+    _reverse_axis = reverse_axis;
     //moveToPos(0);
     return true;
 }
 
 uint8_t Axis::_motorMap(double x) {
-  return (uint8_t)(_radsToDegrees((x + _zero_pos) * _map_mult)); 
+    while (x > PI) {
+        x -= (2.0 * PI);
+    }
+    while (x < -PI) {
+        x += (2.0 * PI);
+    }
+    if (_reverse_axis) 
+        return 180 - (uint8_t)(_radsToDegrees((x + _zero_pos) * _map_mult));
+    else
+        return (uint8_t)(_radsToDegrees((x + _zero_pos) * _map_mult));
 }
 
 double Axis::_radsToDegrees(double rads) {
@@ -106,3 +116,10 @@ _Bool Axis::setMaxSpeed(double max_speed) {
 double Axis::getMaxSpeed() {
     return _max_speed;
 };
+
+double Axis::getMaxPos() {
+    return _max_pos;
+}
+double Axis::getMinPos() {
+    return _min_pos;
+}
