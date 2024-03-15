@@ -28,10 +28,12 @@
 			_Bool setMaxPos(double max_pos);
 			_Bool setMinPos(double min_pos);
 			double getCurrentPos();
-			_Bool setMapping(double offset, double map_mult);
+			_Bool setMapping(double offset, double map_mult, _Bool reverse_axis);
 			_Bool setMaxSpeed(double max_speed);
 			double getMaxSpeed();
 			uint8_t runSpeed();
+			double getMaxPos();
+			double getMinPos();
 
 		private:
 			double _max_speed;      //rad/s
@@ -46,9 +48,9 @@
 			double _end_rads;
 			double _move_progress;
 			uint32_t _move_start_time;
+			_Bool _reverse_axis;
 
 			PWMServo servo;
-			elapsedMillis _millis;
 			
 			uint8_t _motorMap(double x);
 			double _radsToDegrees(double rads);
