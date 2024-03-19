@@ -17,7 +17,8 @@ Teensy
 
 Axis::Axis() {
     _max_pos = 0;
-    _min_pos = 0;	
+    _min_pos = 0;
+	_max_speed = 5;	
 }
 
 void Axis::initializePositionLimits(uint8_t pwm_pin, double min_pos, double max_pos) {
@@ -30,10 +31,10 @@ void Axis::initializePositionLimits(uint8_t pwm_pin, double min_pos, double max_
 uint8_t Axis::moveToPos(double pos) {
     if (pos < _min_pos || pos > _max_pos)
         return 255;     //Move out of range
-    if (_next_go_time > _millis)
+    if (_next_go_time > millis())
         return 254;     //Moving too quickly
     uint32_t millis_to_pos = (fabs(getCurrentPos() - pos) / _max_speed) * 1000;
-    _next_go_time = _millis + millis_to_pos;
+    _next_go_time = millis() + millis_to_pos;
     uint8_t motor_pos = _motorMap(pos); 
     servo.write(motor_pos);
     _current_pos = pos;
@@ -53,12 +54,12 @@ uint8_t Axis::moveToPosAtSpeed(double pos, double target_speed) { //Must call ru
     _start_rads = getCurrentPos();
     _end_rads = pos;
     _move_progress = 0;
-    _move_start_time = _millis;
+    _move_start_time = millis();
     return retval;
 }
 
 uint8_t Axis::runSpeed() {
-    _move_progress = (float)(_millis - _move_start_time) / ((float) _move_time);
+    _move_progress = (float)(millis() - _move_start_time) / ((float) _move_time);
     if (_move_progress <= 1.0) {
         double angle = _move_progress * (_end_rads - _start_rads) + _start_rads;
         return moveToPos(angle);

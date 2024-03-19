@@ -18,6 +18,7 @@
 			void sit();
 			void stand();
 			Leg legs[NUM_LEGS];
+			void runSpeed();
 		private:
 			uint8_t _leg_group_1[NUM_LEGS / 2] = {1,4,6}; // Divide legs into two self-stable groups
 			uint8_t _leg_group_2[NUM_LEGS / 2] = {2,3,5};
