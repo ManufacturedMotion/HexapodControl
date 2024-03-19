@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <math.h>
+#include "threebythree.hpp"
 
 Hexapod::Hexapod() { 
     for (uint8_t i = 1; i <= NUM_LEGS; i++) {
@@ -91,3 +92,4 @@ _Bool Hexapod::postCheckSafeCoords(double x, double y, double z) {
 	// this function should check if legs will be in impossible positions or within the bot
 	return true;
 }
+

@@ -5,6 +5,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <math.h>
+#include "threebythree.hpp"
+
 
 double zero_points[NUM_LEGS][NUM_AXES_PER_LEG] = ZERO_POINTS;
 int pwm_pins[NUM_LEGS][NUM_AXES_PER_LEG] = PWM_PINS;
@@ -98,6 +100,10 @@ _Bool Leg::inverseKinematics(double x, double y, double z) {
             return false;
         }
     }
+
+    ThreeByOne resulting_pos = forwardKinematics(potential_results[0], potential_results[1], potential_results[2]);
+    Serial.printf("Result\n  x: %f; y: %f; z: %f", resulting_pos.values[0], resulting_pos.values[1], resulting_pos.values[2]);
+
     
     for (uint8_t i = 0; i < NUM_AXES_PER_LEG; i++) {
         if (i == 0 && fabs(potential_results[i]) >= 0.01)
@@ -141,3 +147,21 @@ void Leg::moveAxes() {
         current_angles[i] = _next_angles[i];
     }
 }
+
+ThreeByOne Leg::forwardKinematics(double axis0_angle, double axis1_angle, double axis2_angle) {
+    ThreeByOne length0(_length0, 0.0, 0.0);
+    ThreeByOne length1(_length1, 0.0, 0.0);
+    ThreeByOne length2(_length2, 0.0, 0.0);
+
+    length0.rotateYaw(axis0_angle);
+
+    length1.rotateYaw(axis0_angle);
+    length1.rotatePitch(axis1_angle);
+
+    length2.rotateYaw(axis0_angle);
+    length2.rotatePitch(axis1_angle);
+    length2.rotatePitch(axis2_angle);
+
+    return length0 + length1 + length2;
+}
+

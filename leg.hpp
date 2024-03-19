@@ -1,5 +1,6 @@
 #include "axis.hpp"
 #include "config.hpp"
+#include "threebythree.hpp"
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -29,6 +30,7 @@
 			_Bool inverseKinematics(double x, double y, double z);
 			double _next_angles[NUM_AXES_PER_LEG];
 			double _next_cartesian[NUM_AXES_PER_LEG];
+			ThreeByOne forwardKinematics(double axis0_angle, double axis1_angle, double axis2_angle);
 	};
 
 #endif

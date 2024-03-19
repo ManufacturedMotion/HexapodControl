@@ -50,6 +50,8 @@
 			uint32_t _move_start_time;
 			_Bool _reverse_axis;
 
+			elapsedMillis _millis;
+
 			PWMServo servo;
 			
 			uint8_t _motorMap(double x);
