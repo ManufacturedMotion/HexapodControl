@@ -37,8 +37,8 @@ void loop() {
         Serial.printf("leg: %d; motor: %d; pos: %f\n", leg_or_action, motor, pos);
         Serial4.printf("leg: %d; motor: %d; pos: %f\n", leg_or_action, motor, pos);
         //hexapod.moveLegToPos(leg, motor, pos);
-	//hexapod.legs[leg - 1].axes[motor - 1].moveToPosAtSpeed(pos, speed);
-	hexapod.moveLegToPosAtSpeed(leg, motor, pos, speed);
+	hexapod.legs[leg - 1].axes[motor - 1].moveToPosAtSpeed(pos, speed);
+	//hexapod.moveLegToPosAtSpeed(leg, motor, pos, speed); //doesn't exist yet - moveLegToPos uses IK and rapid move func. -- not sure how Zack wanted to combine this with speed
         break;
       case 7:
         Serial.printf("Zeroing all legs\n");
