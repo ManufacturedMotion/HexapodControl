@@ -18,7 +18,7 @@ Teensy
 Axis::Axis() {
     _max_pos = 0;
     _min_pos = 0;
-	_max_speed = 5;	
+    _max_speed = 5;	
 }
 
 void Axis::initializePositionLimits(uint8_t pwm_pin, double min_pos, double max_pos) {
