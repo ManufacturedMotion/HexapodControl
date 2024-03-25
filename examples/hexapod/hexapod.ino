@@ -1,3 +1,7 @@
+//#include "hexapod_controller.hpp"
+
+//Hexapod hexapod; 
+
 void setup() {
   Serial.begin(115200);
   Serial4.begin(115200); // Raspberry Pi Serial
@@ -12,15 +16,12 @@ void loop() {
       command = Serial4.readStringUntil('\n');
     }
 
-    // Parse command
     uint8_t leg_or_action;
     uint8_t motor;
     double pos;
-    int parsed = sscanf(command.c_str(), "%hhu %hhu %lf", &leg_or_action, &motor, &pos);
+    int num_parsed = sscanf(command.c_str(), "%hhu %hhu %lf", &leg_or_action, &motor, &pos);
     
-    // Check for valid commands
-    if (parsed == 3 && (leg_or_action >= 1 && leg_or_action <= 6)) {
-      // Process commands requiring three values
+    if (num_parsed == 3 && (leg_or_action >= 1 && leg_or_action <= 6)) {
       switch (leg_or_action) {
         case 1:
         case 2:
@@ -30,26 +31,25 @@ void loop() {
         case 6:
           Serial.printf("leg: %d; motor: %d; pos: %f\n", leg_or_action, motor, pos);
           Serial4.printf("leg: %d; motor: %d; pos: %f\n", leg_or_action, motor, pos);
-          // Perform action
+          //hexapod.moveLegToPos(leg, motor, pos);
           break;
       }
-    } else if (parsed == 1) {
-      // Process commands requiring only one value
+    } else if (num_parsed == 1) {
       switch (leg_or_action) {
         case 7:
           Serial.println("Zeroing all legs");
           Serial4.println("Zeroing all legs");
-          // Perform action
+          //hexapod.moveToZeros();
           break;
         case 8:
           Serial.println("Hexapod standing");
           Serial4.println("Hexapod standing");
-          // Perform action
+          //hexapod.stand();
           break;
         case 9:
           Serial.println("Hexapod sitting");
           Serial4.println("Hexapod sitting");
-          // Perform action
+          //hexapod.sit();
           break;
         default:
           Serial.println("Invalid Input");
