@@ -13,6 +13,8 @@ void loop() {
   double pos;
   uint8_t leg_or_action;
   uint8_t motor;
+  uint8_t speed;
+  hexapod.runSpeed();
 
   if (Serial.available() > 0 || Serial4.available() > 0) {
     String command;
@@ -22,7 +24,7 @@ void loop() {
       command = Serial4.readStringUntil('\n');
     }
 
-    sscanf(command.c_str(), "%hu %hu %lf", &leg_or_action, &motor, &pos);
+    sscanf(command.c_str(), "%hu %hu %lf %hu", &leg_or_action, &motor, &pos, &speed);
 
     //temp switch for user interaction
     switch(leg_or_action) {
@@ -35,6 +37,8 @@ void loop() {
         Serial.printf("leg: %d; motor: %d; pos: %f\n", leg_or_action, motor, pos);
         Serial4.printf("leg: %d; motor: %d; pos: %f\n", leg_or_action, motor, pos);
         //hexapod.moveLegToPos(leg, motor, pos);
+	hexapod.legs[leg - 1].axes[motor - 1].moveToPosAtSpeed(pos, speed);
+	//hexapod.moveLegToPosAtSpeed(leg, motor, pos, speed); //doesn't exist yet - moveLegToPos uses IK and rapid move func. -- not sure how Zack wanted to combine this with speed
         break;
       case 7:
         Serial.printf("Zeroing all legs\n");
