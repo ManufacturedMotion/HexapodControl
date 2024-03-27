@@ -19,6 +19,8 @@
 			_Bool linearMove(double x,  double y, double z, double speed);
 			Axis axes[NUM_AXES_PER_LEG];
 			void setHomeYaw(double home_yaw);
+			ThreeByOne forwardKinematics(double axis0_angle, double axis1_angle, double axis2_angle);
+
 		private:
 			uint8_t _leg_number;
 			double _length0 = 63.00;
@@ -30,7 +32,6 @@
 			_Bool inverseKinematics(double x, double y, double z);
 			double _next_angles[NUM_AXES_PER_LEG];
 			double _next_cartesian[NUM_AXES_PER_LEG];
-			ThreeByOne forwardKinematics(double axis0_angle, double axis1_angle, double axis2_angle);
 	};
 
 #endif

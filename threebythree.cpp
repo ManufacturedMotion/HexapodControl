@@ -100,9 +100,9 @@ void ThreeByOne::mult_three_by_three(const ThreeByThree& left) {
 void ThreeByOne::rotateYaw(double yaw) {
     ThreeByThree rotation_around_z;
     rotation_around_z.values[0][0] = cos(yaw);
-    rotation_around_z.values[0][1] = -sin(yaw);
+    rotation_around_z.values[0][1] = sin(yaw);
     rotation_around_z.values[0][2] = 0;
-    rotation_around_z.values[1][0] = sin(yaw);
+    rotation_around_z.values[1][0] = -sin(yaw);
     rotation_around_z.values[1][1] = cos(yaw);
     rotation_around_z.values[1][2] = 0;
     rotation_around_z.values[2][0] = 0;
@@ -115,11 +115,11 @@ void ThreeByOne::rotatePitch(double pitch) {
     ThreeByThree rotation_around_y;
     rotation_around_y.values[0][0] = cos(pitch);
     rotation_around_y.values[0][1] = 0;
-    rotation_around_y.values[0][2] = sin(pitch);
+    rotation_around_y.values[0][2] = -sin(pitch);
     rotation_around_y.values[1][0] = 0;
     rotation_around_y.values[1][1] = 1;
     rotation_around_y.values[1][2] = 0;
-    rotation_around_y.values[2][0] = -sin(pitch);
+    rotation_around_y.values[2][0] = sin(pitch);
     rotation_around_y.values[2][1] = 0;
     rotation_around_y.values[2][2] = cos(pitch);
     mult_three_by_three(rotation_around_y);
@@ -131,9 +131,9 @@ void ThreeByOne::rotateRoll(double roll) {
     rotation_around_x.values[0][2] = 0;
     rotation_around_x.values[1][0] = 0;
     rotation_around_x.values[1][1] = cos(roll);
-    rotation_around_x.values[1][2] = -sin(roll);
+    rotation_around_x.values[1][2] = sin(roll);
     rotation_around_x.values[2][0] = 0;
-    rotation_around_x.values[2][1] = sin(roll);
+    rotation_around_x.values[2][1] = -sin(roll);
     rotation_around_x.values[2][2] = cos(roll);
     mult_three_by_three(rotation_around_x);
 }
