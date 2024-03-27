@@ -53,7 +53,7 @@ _Bool Leg::inverseKinematics(double x, double y, double z) {
     double theta2_tool  =   (planar_distance*planar_distance - _length1*_length1 - _length2*_length2)
                         /   (2 * _length1 * _length2);
 
-    potential_results[2] = atan2(sqrt(1 - (theta2_tool * theta2_tool)), theta2_tool);
+    potential_results[2] = atan2(sqrt(1 - (theta2_tool*theta2_tool)), theta2_tool);
     
     double theta1_tool0 = atan2(z, y_virtual_planar);
     double theta1_tool1 = atan2(_length2 * sin(potential_results[2]), _length1 + _length2 * cos(potential_results[2]));
@@ -129,7 +129,10 @@ ThreeByOne Leg::forwardKinematics(double axis0_angle, double axis1_angle, double
     length2.rotateYaw(axis0_angle);
     length2.rotateRoll(axis1_angle);
     length2.rotateRoll(axis2_angle);
-
+    
+    Serial.printf("length0\n  x: %f; y: %f; z: %f\n",length0.values[0], length0.values[1], length0.values[2]);
+    Serial.printf("length1\n  x: %f; y: %f; z: %f\n",length1.values[0], length1.values[1], length1.values[2]);
+    Serial.printf("length2\n  x: %f; y: %f; z: %f\n",length2.values[0], length2.values[1], length2.values[2]);
     return length0 + length1 + length2;
 }
 
