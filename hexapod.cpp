@@ -91,3 +91,11 @@ _Bool Hexapod::postCheckSafeCoords(double x, double y, double z) {
 	// this function should check if legs will be in impossible positions or within the bot
 	return true;
 }
+
+void Hexapod::runSpeed() {
+	for (uint8_t i =0; i < NUM_LEGS; i++) {
+		for (uint8_t j = 0; j < NUM_AXES_PER_LEG; j++) {
+			legs[i].axes[j].runSpeed();
+		}
+	}
+}

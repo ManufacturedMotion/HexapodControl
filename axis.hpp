@@ -1,7 +1,6 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <PWMServo.h>
-#include <elapsedMillis.h>
 
 #ifndef HEXA_AXIS
 #define HEXA_AXIS
