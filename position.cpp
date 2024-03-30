@@ -30,6 +30,22 @@ void Position::scalarMult(double factor) {
     yaw = yaw * factor;
 }
 
+void Position::operator*=(const double& multiplier) {
+    X = X * multiplier;
+    Y = Y * multiplier;
+    Z = Z * multiplier;
+    roll = roll * multiplier;
+    pitch = pitch * multiplier;
+    yaw = yaw * multiplier;
+}
+
+Position Position::operator*(const double& multiplier) {
+    Position product;
+    product.set(X, Y, Z, roll, pitch, yaw);
+    product *= multiplier;
+    return product;
+}
+
 void Position::independentScalarMult(double factors[6]) {
     X = X * factors[0];
     Y = Y * factors[1];
@@ -39,7 +55,7 @@ void Position::independentScalarMult(double factors[6]) {
     yaw = yaw * factors[5];
 }
 
-void Position::subtractPos(const Position& pos) {
+void Position::operator-=(const Position& pos) {
     X = X - pos.X;
     Y = Y - pos.Y;
     Z = Z - pos.Z;
@@ -48,13 +64,33 @@ void Position::subtractPos(const Position& pos) {
     yaw = yaw - pos.yaw;
 }
 
-void Position::addPos(const Position& pos) {
+Position Position::operator-(const Position& subtrahend) {
+    Position difference;
+    difference.set(X, Y, Z, roll, pitch, yaw);
+    difference -= subtrahend;
+    return difference;
+}
+
+void Position::operator+=(const Position& pos) {
     X = X + pos.X;
     Y = Y + pos.Y;
     Z = Z + pos.Z;
     roll = roll + pos.roll;
     pitch = pitch + pos.pitch;
     yaw = yaw + pos.yaw;
+}
+
+Position Position::operator+(const Position& addend) {
+    Position sum;
+    sum.set(X, Y, Z, roll, pitch, yaw);
+    sum += addend;
+    return sum;
+}
+
+double Position::magnitude() {
+    double orientation_magnitude = sqrt(roll*roll + pitch*pitch + yaw*yaw) * 100.0;
+    double cartesian_magnitude = sqrt(X*X + Y*Y + Z*Z);
+    return sqrt(orientation_magnitude*orientation_magnitude + cartesian_magnitude*cartesian_magnitude);
 }
 
 _Bool Position::equals(const Position& pos) {
