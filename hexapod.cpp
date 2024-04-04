@@ -157,3 +157,11 @@ void Hexapod::forwardKinematics(double angle0, double angle1, double angle2) {
 	ThreeByOne resulting_pos = legs[0].forwardKinematics(angle0, angle1, angle2);
     Serial.printf("Result\n  x: %f; y: %f; z: %f\n", resulting_pos.values[0], resulting_pos.values[1], resulting_pos.values[2]);
 }
+
+void Hexapod::runSpeed() {
+	for (uint8_t i =0; i < NUM_LEGS; i++) {
+		for (uint8_t j = 0; j < NUM_AXES_PER_LEG; j++) {
+			legs[i].axes[j].runSpeed();
+		}
+	}
+}

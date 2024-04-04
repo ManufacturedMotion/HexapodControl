@@ -1,21 +1,33 @@
+<<<<<<< HEAD
 #include "hexapod_controller.hpp"
 #include <math.h>
 Hexapod hexapod; 
+=======
+//#include "hexapod_controller.hpp"
+
+//Hexapod hexapod; 
+>>>>>>> main
 
 void setup() {
-
   Serial.begin(115200);
-
+  Serial4.begin(115200); // Raspberry Pi Serial
 }
 
+Serial * serial;
 void loop() {
   short unsigned int _, leg, motor;
   double pos;
   double x, y, z, roll, pitch, yaw, speed;
 
-  	if (Serial.available() > 0) {
-    	String command = Serial.readStringUntil('\n');
-    	Serial.println("Received\n");
+  	if (Serial.available() > 0 || Serial4.available (0)) {
+		if (Serial.available() > 0){
+    		String command = Serial.readStringUntil('\n');
+			Serial4.println("Received\n");
+		}
+		else {
+    		String command = Serial4.readStringUntil('\n');
+    		Serial4.println("Received\n");
+		}
       uint8_t command_type = command.toInt();
 
 		//temp switch for user interaction
@@ -31,6 +43,7 @@ void loop() {
 			case 6:
         sscanf(command.c_str(), "%hu %hu %lf", &leg, &motor, &pos);
 				Serial.printf("leg: %d; motor: %d; pos: %f\n", leg, motor, pos);
+				Serial4.printf("leg: %d; motor: %d; pos: %f\n", leg, motor, pos);
 				hexapod.moveLegAxisToPos((uint8_t) leg, (uint8_t) motor, pos);
 				break;
 			case 7:

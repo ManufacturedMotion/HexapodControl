@@ -22,6 +22,7 @@
 			uint8_t linearMoveSetup(double x, double y, double z, double roll, double pitch, double yaw, double target_speed);
 			void linearMovePerform();
 			void rapidMove(Position next_pos);
+			void runSpeed();
 		private:
 			uint8_t _leg_group_1[NUM_LEGS / 2] = {1,4,6}; // Divide legs into two self-stable groups
 			uint8_t _leg_group_2[NUM_LEGS / 2] = {2,3,5};
