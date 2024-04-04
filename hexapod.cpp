@@ -124,7 +124,7 @@ uint8_t Hexapod::inverseKinematics(Position pos) {
 		ThreeByOne temp = ThreeByOne(potential_results[i][0], potential_results[i][1], potential_results[i][2]);
 		temp.rotateYaw(_home_yaws[i]);
 		for (uint8_t j = 0; j < NUM_AXES_PER_LEG; j++) {
-			potential_results[i][j] = temp.values[i];
+			potential_results[i][j] = temp.values[j];
 		}
 	}
 
@@ -136,7 +136,9 @@ uint8_t Hexapod::inverseKinematics(Position pos) {
 	for (uint8_t i = 0; i < NUM_LEGS; i++) {
 		for (uint8_t j = 0; j < NUM_AXES_PER_LEG; j++) {
 			_next_leg_pos[i][j] = potential_results[i][j];
+			
 		}
+		Serial.printf("Leg %d, x:%lf, y:%lf, z%lf\n",i,_next_leg_pos[i][0], _next_leg_pos[i][1], _next_leg_pos[i][2]);
 	}
 	return 0;
 }
