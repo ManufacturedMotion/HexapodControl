@@ -11,9 +11,7 @@ void setup() {
 void loop() {
   
     double x = 0, y = 0, z = 200, roll = 0, pitch = 0, yaw = 0, speed = 100;
-
-
-	//TODO - rename file before merge/push
+	String command;
 
     if (Serial.available() > 0 || Serial4.available() > 0) {
 		if (Serial.available() > 0) {
@@ -34,7 +32,7 @@ void loop() {
 		String buffer[16];
 
 		//G-code commands		
-		if split_command[0].startsWith('g') {
+		if (split_command[0].startsWith('g')) {
 	
 			splitString(split_command[0], 'G', buffer, num_words);
 			if(!buffer[1].equals("1")){
@@ -42,36 +40,36 @@ void loop() {
 				Serial4.println("Error only G1 implemented");
 			}
 			else {
-        		String current_command_substring[16]
+        		String current_command_substring;
 				
-				for(uint8_t i = 1; i < length(split_command); i++) {
+				for(uint8_t i = 1; i < 15; i++) {
 					current_command_substring = split_command[i].toLowerCase();
 
-					if current_command_substring.startsWith('x') {
+					if (current_command_substring.startsWith('x')) {
 						splitString(current_command_substring, 'X', buffer, num_words);
                 		String x_str = buffer[1]; float x_float = x_str.toFloat(); x = (double)x_float;
 					}
-					else if current_command_substring.startsWith('y') {
+					else if (current_command_substring.startsWith('y')) {
 						splitString(current_command_substring, 'Y', buffer, num_words);
                 		String y_str = buffer[1]; float y_float = y_str.toFloat(); y = (double)y_float;
 					}        		
-					else if current_command_substring.startsWith('z') {
+					else if (current_command_substring.startsWith('z')) {
 						splitString(current_command_substring, 'Z', buffer, num_words);
                 		String z_str = buffer[1]; float z_float = z_str.toFloat(); z = (double)z_float;
 					}
-					else if current_command_substring.startsWith('r') {
+					else if (current_command_substring.startsWith('r')) {
 						splitString(current_command_substring, 'R', buffer, num_words);
                 		String roll_str = buffer[1]; float roll_float = roll_str.toFloat(); roll = (double)roll_float;
 					}
-					else if current_command_substring.startsWith('p') {
+					else if (current_command_substring.startsWith('p')) {
 						splitString(current_command_substring, 'P', buffer, num_words);
                 		String pitch_str = buffer[1]; float pitch_float = pitch_str.toFloat(); pitch = (double)pitch_float;
 					}
-					else if current_command_substring.startsWith('w') {
+					else if (current_command_substring.startsWith('w')) {
 						splitString(current_command_substring, 'W', buffer, num_words);
                 		String yaw_str = buffer[1]; float yaw_float = yaw_str.toFloat(); yaw = (double)yaw_float;
 					}
-					else if current_command_substring.startsWith('s') {
+					else if (current_command_substring.startsWith('s')) {
 						splitString(current_command_substring, 'S', buffer, num_words);
                 		String speed_str = buffer[1]; float speed_float = speed_str.toFloat(); speed = (double)speed_float;
 					}
@@ -85,7 +83,7 @@ void loop() {
       		}
 		}
 		
-		else if split_command[0].startsWith('p') {
+		else if (split_command[0].startsWith('p')) {
 			splitString(split_command[0], 'P', buffer, num_words);	
 			if (buffer[1] == "0") {
 			
@@ -103,6 +101,15 @@ void loop() {
 			}
 
 		}
+
+
+    	else {
+
+      		Serial.printf("recieved input from controller \n"); 
+     		Serial4.printf("recieved input from controller \n"); 
+      		printArray(split_command, 16);
+
+    	}
 
 	}
 	hexapod.runSpeed();
