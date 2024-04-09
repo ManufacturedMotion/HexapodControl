@@ -2,49 +2,77 @@
 #include <math.h>
 Hexapod hexapod; 
 
+const int bufferSize = 64;
+
 void setup() {
 
   Serial.begin(115200);
-
+  Serial4.begin(115200);
+  
 }
 
 void loop() {
   
     double x = 0, y = 0, z = 200, roll = 0, pitch = 0, yaw = 0, speed = 100;
+    int bufferIndex = 0;
 	String command;
+	String command_raw;
 
     if (Serial.available() > 0 || Serial4.available() > 0) {
 		if (Serial.available() > 0) {
-   			String command = Serial.readStringUntil('\n');
-   			Serial.println("Received\n");
+   			String command_raw = Serial.readStringUntil('\n');
+   			Serial.println("Received from serial\n");
+			Serial.println(command_raw);
 		}
 		else {
-			String command = Serial.readStringUntil('\n');
-			Serial4.println("Received\n");
-		}
+  			while (Serial4.available() > 0) {
+    			char receivedChar = Serial4.read();
 
-		String split_command[16];
+    			if (receivedChar == '\n') {
+      				// End of word, process the complete word
+      				Serial4.println("Controller input from Raspberry Pi: ");
+      				Serial4.println(command_raw);
+
+      				// Reset bufferIndex for the next word
+      				bufferIndex = 0;
+    			} else {
+      				// Add the character to the buffer
+      				if (bufferIndex < bufferSize - 1) {
+        				command_raw += receivedChar;
+						bufferIndex++;
+      				} else {
+        				// Buffer overflow, handle error or reset the buffer
+        				bufferIndex = 0;
+      				}
+    			}
+			}
+		}	
+
+		String split_command[bufferSize];
 		uint32_t num_words = 0;
+		command = command_raw;
 		
 		//split on spaces
 		splitString(command, ' ', split_command, num_words);
 
-		String buffer[16];
+		String buffer[bufferSize];
 
 		//G-code commands		
 		if (split_command[0].startsWith('g')) {
-	
+
 			splitString(split_command[0], 'G', buffer, num_words);
 			if(!buffer[1].equals("1")){
-				Serial.println("Error only G1 implemented");
-				Serial4.println("Error only G1 implemented");
+				Serial.println("Error: only G1 implemented");
+				Serial4.println("Error: only G1 implemented");
 			}
 			else {
         		String current_command_substring;
-				
-				for(uint8_t i = 1; i < 15; i++) {
-					current_command_substring = split_command[i].toLowerCase();
-
+			
+				uint8_t word_count = num_words;	
+				for(uint8_t i = 0; i < word_count; i++) {
+		
+					current_command_substring = split_command[i];
+					
 					if (current_command_substring.startsWith('x')) {
 						splitString(current_command_substring, 'X', buffer, num_words);
                 		String x_str = buffer[1]; float x_float = x_str.toFloat(); x = (double)x_float;
@@ -76,8 +104,8 @@ void loop() {
 
 				}	
 
-        		Serial.printf("parsing success; x, y, z is %f, %f, %f\n roll, pitch, yaw, speed are\n", x, y, z, roll, pitch, yaw, speed);
-        		Serial4.printf("parsing success; x, y, z is %f, %f, %f\n roll, pitch, yaw, speed are\n", x, y, z, roll, pitch, yaw, speed);
+        		Serial.printf("parsing success; x, y, z is %f, %f, %f\n roll, pitch, yaw, speed are %f, %f, %f, %f\n", x, y, z, roll, pitch, yaw, speed);
+        		Serial4.printf("parsing success; x, y, z is %f, %f, %f\n roll, pitch, yaw, speed are %f, %f, %f, %f\n", x, y, z, roll, pitch, yaw, speed);
 				hexapod.linearMoveSetup(x, y, z, roll, pitch, yaw, speed);
 	
       		}
@@ -87,8 +115,8 @@ void loop() {
 			splitString(split_command[0], 'P', buffer, num_words);	
 			if (buffer[1] == "0") {
 			
-				Serial.printf("parsing success; using Zero preset\n");
-				Serial4.printf("parsing success; using Zero preset\n");
+				Serial.println("parsing success; starfish preset selected (move all motors to zero)\n");
+				Serial4.println("parsing success; starfish preset selected (move all motors to zero)\n");
 				hexapod.moveToZeros();
 
 			}
@@ -105,11 +133,16 @@ void loop() {
 
     	else {
 
-      		Serial.printf("recieved input from controller \n"); 
-     		Serial4.printf("recieved input from controller \n"); 
-      		printArray(split_command, 16);
+      		Serial.println("Unsupported input recieved"); 
+     		Serial4.println("Unsupported input recieved"); 
+			Serial.println(command);
+			Serial4.println(command);
 
     	}
+
+		//clear strings so command not repeated
+		command_raw = "";
+		command = "";
 
 	}
 	hexapod.runSpeed();
@@ -123,7 +156,7 @@ void splitString(String command, String sub_string, String split_words[], uint32
     uint32_t word_index = 0;
 
 	// Initialize split_words array with empty strings
-    for (uint32_t i = 0; i < 16; i++) {
+    for (uint32_t i = 0; i < bufferSize; i++) {
         split_words[i] = "";
     }
 
@@ -147,12 +180,13 @@ void splitString(String command, String sub_string, String split_words[], uint32
 //print buffers for debug
 void printArray(String array[], uint32_t size) {
     for (uint32_t i = 0; i < size; i++) {
-        Serial.print(array[i]);
-        Serial4.print(array[i]);
-        Serial.print(" "); 
-        Serial4.print(" "); 
+        Serial.println(array[i]);
+        Serial4.println(array[i]);
+        Serial.println(" "); 
+        Serial4.println(" "); 
     }
     Serial.println(); 
     Serial4.println(); 
 }
+
 
