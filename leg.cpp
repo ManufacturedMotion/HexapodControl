@@ -67,7 +67,7 @@ _Bool Leg::inverseKinematics(double x, double y, double z) {
         }
     }
 
-    ThreeByOne resulting_pos = forwardKinematics(potential_results[0], potential_results[1], potential_results[2]);
+    // ThreeByOne resulting_pos = forwardKinematics(potential_results[0], potential_results[1], potential_results[2]);
     // Serial.printf("Result\n  x: %f; y: %f; z: %f\n", resulting_pos.values[0], resulting_pos.values[1], resulting_pos.values[2]);
 
     // Serial.printf("Result\n  angle0: %f; angle1: %f; angle2: %f\n", potential_results[0], potential_results[1], potential_results[2]);
@@ -95,22 +95,17 @@ _Bool Leg::rapidMove(double x,  double y, double z) {
     return false;
 }
 
-uint8_t Leg::runLegSpeed(void *(func)(double)) {
+uint8_t Leg::linearMovePerform() {
     double move_progress = (float)(millis() - _move_start_time) / ((float) _move_time);
     if (move_progress <= 1.0) {
-        // double next_x = func(move_progress) * (_end_cartesian[0] - _start_cartesian[0]) + _start_cartesian[0];
-        // double next_y = func(move_progress) * (_end_cartesian[1] - _start_cartesian[1]) + _start_cartesian[1];
-        // double next_z = func(move_progress) * (_end_cartesian[2] - _start_cartesian[2]) + _start_cartesian[2];
-        // return rapidMove(next_x, next_y, next_z);
-        return 0;
+        double next_x = move_progress * (_end_cartesian[0] - _start_cartesian[0]) + _start_cartesian[0];
+        double next_y = move_progress * (_end_cartesian[1] - _start_cartesian[1]) + _start_cartesian[1];
+        double next_z = move_progress * (_end_cartesian[2] - _start_cartesian[2]) + _start_cartesian[2];
+        return rapidMove(next_x, next_y, next_z);
     }
+    _moving_flag = false;
     return 0;
 }
-
-// double Leg::sinMovement(double move_progress) {
-//     // will want this for smooth looking steps
-//     return 0.0;
-// }
 
 double Leg::linearMovement(double move_progress) {
     return move_progress * (_end_cartesian[0] - _start_cartesian[0]) + _start_cartesian[0];
@@ -122,6 +117,10 @@ double Leg::linearMovement(double move_progress) {
 //     if (!move_status)
 //         _moving_flag = false;
 // }
+
+_Bool Leg::isMoving() {
+    return _moving_flag;
+}
 
 _Bool Leg::linearMoveSetup(double x,  double y, double z, double target_speed) {
     uint8_t retval = 0;
@@ -139,7 +138,10 @@ _Bool Leg::linearMoveSetup(double x,  double y, double z, double target_speed) {
     _move_progress = 0;
     _move_start_time = millis();
     _moving_flag = true;
-    // _movement_function = &linearMovement;
+    double x_dist = _start_cartesian[0] - _end_cartesian[0];
+    double y_dist = _start_cartesian[1] - _end_cartesian[1];
+    double z_dist = _start_cartesian[2] - _end_cartesian[2];
+    _move_time = (sqrt(x_dist*x_dist + y_dist*y_dist + z_dist*z_dist) / speed) * 1000; 
     return retval;
 }
 

@@ -21,7 +21,8 @@
 			ThreeByOne forwardKinematics(double axis0_angle, double axis1_angle, double axis2_angle);
 			uint8_t runLegSpeed(void* (*)(double));
 			_Bool linearMoveSetup(double x,  double y, double z, double target_speed);
-			
+			uint8_t linearMovePerform();
+			_Bool isMoving();
 
 		private:
 			uint8_t _leg_number;
@@ -43,7 +44,6 @@
 			_Bool _moving_flag = false;
 			void * _movement_function;
 			double linearMovement(double move_progress);
-
 	};
 
 #endif

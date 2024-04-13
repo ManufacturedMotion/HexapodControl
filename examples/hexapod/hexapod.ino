@@ -1,19 +1,12 @@
-<<<<<<< HEAD
 #include "hexapod_controller.hpp"
 #include <math.h>
 Hexapod hexapod; 
-=======
-//#include "hexapod_controller.hpp"
-
-//Hexapod hexapod; 
->>>>>>> main
 
 void setup() {
   Serial.begin(115200);
   Serial4.begin(115200); // Raspberry Pi Serial
 }
 
-Serial * serial;
 void loop() {
   short unsigned int _, leg, motor;
   double pos;

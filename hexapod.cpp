@@ -78,8 +78,11 @@ uint8_t Hexapod::linearMoveSetup(double x, double y, double z, double roll, doub
 	Position pos_delta = _end_pos - _start_pos;
 	_move_time = (fabs(pos_delta.magnitude()) / speed) * 1000; //convert to seconds
 	_moving_flag = true;
-	Serial.printf("move time: %lf", _move_time);
 	return retval;
+}
+
+uint8_t Hexapod::legLinearMoveSetup(uint8_t leg, double x,  double y, double z, double target_speed) {
+	return legs[leg].linearMoveSetup(x, y, z, target_speed);
 }
 
 void Hexapod::linearMovePerform() {
@@ -88,12 +91,20 @@ void Hexapod::linearMovePerform() {
 		Position next_pos = (_end_pos - _start_pos) * move_progress + _start_pos;
 		rapidMove(next_pos);
 	}
+	for (uint8_t i = 0; i < NUM_LEGS; i++) {
+		if (legs[i].isMoving()) {
+			legs[i].linearMovePerform();
+		}
+	}
 }
 
 void Hexapod::moveLegs() {
     for (uint8_t i = 0; i < NUM_LEGS; i++) {
-        legs[i].rapidMove(_next_leg_pos[i][0], _next_leg_pos[i][1],_next_leg_pos[i][2]);
-    }
+		if (!legs[i].isMoving()) {
+        	legs[i].rapidMove(_next_leg_pos[i][0], _next_leg_pos[i][1],_next_leg_pos[i][2]);
+		}
+		
+	}
 }
 
 uint8_t Hexapod::inverseKinematics(Position pos) {

@@ -21,6 +21,7 @@
 			void forwardKinematics(double angle0, double angle1, double angle2);
 			void rapidMove(double x, double y, double z, double roll, double pitch, double yaw);
 			uint8_t linearMoveSetup(double x, double y, double z, double roll, double pitch, double yaw, double target_speed);
+			uint8_t legLinearMoveSetup(uint8_t leg, double x,  double y, double z, double target_speed);
 			void linearMovePerform();
 			void rapidMove(Position next_pos);
 			void runSpeed();
