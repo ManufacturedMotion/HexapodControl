@@ -3,6 +3,7 @@
 #include "position.hpp"
 #include <stdbool.h>
 #include <stdint.h>
+#include <math.h>
 
 #ifndef HEXA_H
 #define HEXA_H
@@ -29,8 +30,8 @@
 			double _next_leg_pos[NUM_LEGS][NUM_AXES_PER_LEG];
 			double _leg_X_offset[NUM_LEGS] = {-59.09, -108.5, -59.03, 59.03, 108.5, 59.09};
 			double _leg_Y_offset[NUM_LEGS] = {-106.04, 0, 106.1, 106.1, 0, -106.04};
-			double _home_yaws[NUM_LEGS] = { ((-PI / 2.0) - 1.0),(-PI / 2.0),	((-PI / 2.0) + 1.0), 
-											(1.0), 				( PI / 2.0),	(( PI / 2.0) + 1.0)  };
+			double _home_yaws[NUM_LEGS] = { ((-M_PI / 2.0) - 1.0),(-M_PI / 2.0),	((-M_PI / 2.0) + 1.0), 
+											(1.0), 				( M_PI / 2.0),	(( M_PI / 2.0) + 1.0)  };
 			// double _home_yaws[NUM_LEGS] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 			double _max_speed = 1000000;
 			_Bool preCheckSafePos(Position pos);

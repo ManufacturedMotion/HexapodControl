@@ -6,6 +6,7 @@
 #include <stdbool.h>
 #include <math.h>
 #include "threebythree.hpp"
+#include <Arduino.h>
 
 Hexapod::Hexapod() { 
     for (uint8_t i = 1; i <= NUM_LEGS; i++) {

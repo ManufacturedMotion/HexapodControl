@@ -6,7 +6,7 @@
 #include <stdbool.h>
 #include <math.h>
 #include "threebythree.hpp"
-
+#include <Arduino.h>
 
 double zero_points[NUM_LEGS][NUM_AXES_PER_LEG] = ZERO_POINTS;
 int pwm_pins[NUM_LEGS][NUM_AXES_PER_LEG] = PWM_PINS;
@@ -34,10 +34,10 @@ _Bool Leg::inverseKinematics(double x, double y, double z) {
     double potential_results[3];
     if (fabs(y < 0.0005)) {
         if (x > 0.0005) {
-            potential_results[0] = PI / 2.0;
+            potential_results[0] = M_PI / 2.0;
         }
         else if (x < -0.0005) {
-            potential_results[0] = -PI / 2.0;
+            potential_results[0] = -M_PI / 2.0;
         }
         else {
             potential_results[0] = 0;
