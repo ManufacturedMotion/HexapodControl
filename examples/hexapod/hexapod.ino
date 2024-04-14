@@ -1,6 +1,6 @@
-//#include "hexapod_controller.hpp"
-
-//Hexapod hexapod; 
+#include "hexapod_controller.hpp"
+#include <math.h>
+Hexapod hexapod; 
 
 void setup() {
   Serial.begin(115200);
@@ -8,58 +8,63 @@ void setup() {
 }
 
 void loop() {
-  if (Serial.available() > 0 || Serial4.available() > 0) {
-    String command;
-    if (Serial.available() > 0) {
-      command = Serial.readStringUntil('\n');
-    } else {
-      command = Serial4.readStringUntil('\n');
-    }
+  short unsigned int _, leg, motor;
+  double pos;
+  double x, y, z, roll, pitch, yaw, speed;
 
-    uint8_t leg_or_action;
-    uint8_t motor;
-    double pos;
-    int num_parsed = sscanf(command.c_str(), "%hhu %hhu %lf", &leg_or_action, &motor, &pos);
-    
-    if (num_parsed == 3 && (leg_or_action >= 1 && leg_or_action <= 6)) {
-      switch (leg_or_action) {
-        case 1:
-        case 2:
-        case 3:
-        case 4:
-        case 5:
-        case 6:
-          Serial.printf("leg: %d; motor: %d; pos: %f\n", leg_or_action, motor, pos);
-          Serial4.printf("leg: %d; motor: %d; pos: %f\n", leg_or_action, motor, pos);
-          //hexapod.moveLegToPos(leg, motor, pos);
-          break;
-      }
-    } else if (num_parsed == 1) {
-      switch (leg_or_action) {
-        case 7:
-          Serial.println("Zeroing all legs");
-          Serial4.println("Zeroing all legs");
-          //hexapod.moveToZeros();
-          break;
-        case 8:
-          Serial.println("Hexapod standing");
-          Serial4.println("Hexapod standing");
-          //hexapod.stand();
-          break;
-        case 9:
-          Serial.println("Hexapod sitting");
-          Serial4.println("Hexapod sitting");
-          //hexapod.sit();
-          break;
-        default:
-          Serial.println("Invalid Input");
-          Serial4.println("Invalid Input");
-          break;
-      }
-    } else {
-      // Invalid command format
-      Serial.println("Invalid command format");
-      Serial4.println("Invalid command format");
-    }
-  }
+  	if (Serial.available() > 0 || Serial4.available (0)) {
+		if (Serial.available() > 0){
+    		String command = Serial.readStringUntil('\n');
+			Serial4.println("Received\n");
+		}
+		else {
+    		String command = Serial4.readStringUntil('\n');
+    		Serial4.println("Received\n");
+		}
+      uint8_t command_type = command.toInt();
+
+		//temp switch for user interaction
+		switch(command_type) {
+			default:
+			case 0:
+				break;
+			case 1:
+			case 2:
+			case 3:
+			case 4:
+			case 5:
+			case 6:
+        sscanf(command.c_str(), "%hu %hu %lf", &leg, &motor, &pos);
+				Serial.printf("leg: %d; motor: %d; pos: %f\n", leg, motor, pos);
+				Serial4.printf("leg: %d; motor: %d; pos: %f\n", leg, motor, pos);
+				hexapod.moveLegAxisToPos((uint8_t) leg, (uint8_t) motor, pos);
+				break;
+			case 7:
+				Serial.printf("Instructed to set to zeros");
+        hexapod.moveToZeros();
+				break;
+			case 8:
+				hexapod.stand();
+				break;
+      case 9:
+        sscanf(command.c_str(), "%hu %hu %lf %lf %lf", &_, &leg, &x, &y, &z);
+        Serial.printf("leg: %d; x: %f; y: %f, z: %f\n", leg, x, y, z);
+        Serial.println(hexapod.moveLegToPos((uint8_t)leg, x, y, z));
+        break;
+      case 10:
+        sscanf(command.c_str(), "%hu %lf %lf %lf", &_, &x, &y, &z);
+        Serial.printf("angle0: %f; angle1: %f, angle2: %f\n", x, y, z);
+        hexapod.forwardKinematics(x, y, z);
+        break;
+      case 11:
+        sscanf(command.c_str(), "%hu %lf %lf %lf %lf %lf %lf", &_, &x, &y, &z, &roll, &pitch, &yaw);
+        hexapod.rapidMove(x, y, z, roll, pitch, yaw);
+        break;
+      case 12:
+        sscanf(command.c_str(), "%hu %lf %lf %lf %lf %lf %lf %lf", &_, &x, &y, &z, &roll, &pitch, &yaw, &speed);
+        hexapod.linearMoveSetup(x, y, z, roll, pitch, yaw, speed);
+        break;
+  		}
+	}
+  hexapod.linearMovePerform();
 }

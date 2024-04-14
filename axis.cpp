@@ -13,7 +13,7 @@ Teensy
 #include <stdbool.h>
 #include <math.h>
 #include <PWMServo.h>
-#include <elapsedMillis.h>
+#include <Arduino.h>
 
 Axis::Axis() {
     _max_pos = 0;
@@ -76,11 +76,11 @@ _Bool Axis::setMapping(double zero_pos, double map_mult, _Bool reverse_axis) {
 }
 
 uint8_t Axis::_motorMap(double x) {
-    while (x > PI) {
-        x -= (2.0 * PI);
+    while (x > M_PI) {
+        x -= (2.0 * M_PI);
     }
-    while (x < -PI) {
-        x += (2.0 * PI);
+    while (x < -M_PI) {
+        x += (2.0 * M_PI);
     }
     if (_reverse_axis) 
         return 180 - (uint8_t)(_radsToDegrees((x + _zero_pos) * _map_mult));

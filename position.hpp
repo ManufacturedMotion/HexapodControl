@@ -19,6 +19,13 @@
 			void subtractPos(const Position& pos);
 			double distanceFromOrigin();
 			_Bool equals(const Position& pos);
+			Position operator*(const double& multiplier);
+			void operator*=(const double& multiplier);
+			Position operator+(const Position& pos);
+			void  operator+=(const Position& pos);
+			Position operator-(const Position& pos);
+			void operator-=(const Position& pos);
+			double magnitude();
 		private:
 	};
 

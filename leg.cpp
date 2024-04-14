@@ -5,6 +5,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <math.h>
+#include "threebythree.hpp"
+#include <Arduino.h>
 
 double zero_points[NUM_LEGS][NUM_AXES_PER_LEG] = ZERO_POINTS;
 int pwm_pins[NUM_LEGS][NUM_AXES_PER_LEG] = PWM_PINS;
@@ -32,10 +34,10 @@ _Bool Leg::inverseKinematics(double x, double y, double z) {
     double potential_results[3];
     if (fabs(y < 0.0005)) {
         if (x > 0.0005) {
-            potential_results[0] = PI / 2.0;
+            potential_results[0] = M_PI / 2.0;
         }
         else if (x < -0.0005) {
-            potential_results[0] = -PI / 2.0;
+            potential_results[0] = -M_PI / 2.0;
         }
         else {
             potential_results[0] = 0;
@@ -44,73 +46,35 @@ _Bool Leg::inverseKinematics(double x, double y, double z) {
     else {
         potential_results[0] = atan2(x,y);
     }
-    _Bool negative_theta0_flag = false;
-    // If the most direct route to the point is out of reach try negative
-    if (potential_results[0] > axes[0].getMaxPos()) {
-        double other_possibility = potential_results[0] - PI;
-        if ((other_possibility < axes[0].getMaxPos()) && (other_possibility >axes[0].getMinPos())) {
-            potential_results[0] = other_possibility;
-            negative_theta0_flag = true;
-        } 
-        else {
-            return false;
-        }
-    }
 
-    double x_virtual;
-    double y_virtual;
-
-    double y_virtual_planar;
-    double planar_distance;
-
-    double theta1_tool0;
-    double theta1_tool1;
-
-    double theta2_tool;
-
+    double y_virtual_planar = sqrt(y * y + x * x) - _length0;
+    double planar_distance = sqrt(y_virtual_planar * y_virtual_planar + z * z);
     
-    x_virtual = x - _length0 * cos(potential_results[0]);
-    y_virtual = y - _length0 * sin(potential_results[0]);
-    if (!negative_theta0_flag) {
-        y_virtual_planar = sqrt(x_virtual * x_virtual + y_virtual * y_virtual);
-    }
-    else {
-        y_virtual_planar = - 1.0 * sqrt(x_virtual * x_virtual + y_virtual * y_virtual);
-    }
-    planar_distance = - 1.0 * sqrt(y_virtual_planar * y_virtual_planar + z * z);
+    double theta2_tool  =   (planar_distance*planar_distance - _length1*_length1 - _length2*_length2)
+                        /   (2 * _length1 * _length2);
 
-    theta1_tool0 = atan2(y_virtual_planar, z);
-    theta1_tool1 = acos((planar_distance * planar_distance + _length1 * _length1 - _length2 * _length2) / (2 * planar_distance * _length1));
-
-    theta2_tool = acos((_length1 * _length1 + _length2 * _length2 - planar_distance * planar_distance) / (2 * _length1 * _length2));
-    Serial.println(PI);
+    potential_results[2] = atan2(sqrt(1 - (theta2_tool*theta2_tool)), theta2_tool);
+    
+    double theta1_tool0 = atan2(z, y_virtual_planar);
+    double theta1_tool1 = atan2(_length2 * sin(potential_results[2]), _length1 + _length2 * cos(potential_results[2]));
     potential_results[1] = theta1_tool0 - theta1_tool1;
-    potential_results[2] = PI - theta2_tool;
-    Serial.printf("t1_tool0: %f; t1_tool1: %f; t2_tool: %f\n", theta1_tool0, theta1_tool1, theta2_tool);
-    Serial.printf("x_virt: %f; y_virt: %f; y_virt_planar: %f\n", x_virtual, y_virtual, y_virtual_planar);
-    // potential_results[1] = theta1_tool0 + theta1_tool1;
-    // potential_results[2] = -(PI - theta2_tool);
 
     for (uint8_t i = 0; i < NUM_AXES_PER_LEG; i++) {
         if (potential_results[i] != potential_results[i]) { //Check for NaN
-            Serial.println(i);
-            Serial.println(potential_results[i]);
+            // Serial.println(i);
+            // Serial.println(potential_results[i]);
             return false;
         }
     }
-    
+
+    // ThreeByOne resulting_pos = forwardKinematics(potential_results[0], potential_results[1], potential_results[2]);
+    // Serial.printf("Result\n  x: %f; y: %f; z: %f\n", resulting_pos.values[0], resulting_pos.values[1], resulting_pos.values[2]);
+
+    // Serial.printf("Result\n  angle0: %f; angle1: %f; angle2: %f\n", potential_results[0], potential_results[1], potential_results[2]);
     for (uint8_t i = 0; i < NUM_AXES_PER_LEG; i++) {
-        if (i == 0 && fabs(potential_results[i]) >= 0.01)
-            _next_angles[i] = potential_results[i] + _home_yaw;
-        else
-            _next_angles[i] = potential_results[i];
+        _next_angles[i] = potential_results[i];
     }
     return true;
-}
-
-void Leg::setHomeYaw(double home_yaw) {
-    _home_yaw = home_yaw;
-    Serial.printf("Leg: %f; home yaw: %f\n", _leg_number, _home_yaw);
 }
 
 _Bool Leg::checkSafeCoords(double x, double y, double z) {
@@ -123,21 +87,88 @@ _Bool Leg::checkSafeCoords(double x, double y, double z) {
 _Bool Leg::rapidMove(double x,  double y, double z) {
     if (inverseKinematics(x, y, z)) {
         moveAxes();
+        _current_cartesian[0] = x;
+        _current_cartesian[1] = y;
+        _current_cartesian[2] = z;
         return true;
     }
     return false;
 }
 
-_Bool Leg::linearMove(double x,  double y, double z, double speed) {
-    return false;
+uint8_t Leg::linearMovePerform() {
+    double move_progress = (float)(millis() - _move_start_time) / ((float) _move_time);
+    if (move_progress <= 1.0) {
+        double next_x = move_progress * (_end_cartesian[0] - _start_cartesian[0]) + _start_cartesian[0];
+        double next_y = move_progress * (_end_cartesian[1] - _start_cartesian[1]) + _start_cartesian[1];
+        double next_z = move_progress * (_end_cartesian[2] - _start_cartesian[2]) + _start_cartesian[2];
+        return rapidMove(next_x, next_y, next_z);
+    }
+    _moving_flag = false;
+    return 0;
+}
+
+double Leg::linearMovement(double move_progress) {
+    return move_progress * (_end_cartesian[0] - _start_cartesian[0]) + _start_cartesian[0];
+}
+
+// void Leg::ISRLinearMove() {
+//     // Attach this function to an IntervalTimer on a 10-50ms interval
+//     uint8_t move_status = runLegSpeed(&linearMovement);
+//     if (!move_status)
+//         _moving_flag = false;
+// }
+
+_Bool Leg::isMoving() {
+    return _moving_flag;
+}
+
+_Bool Leg::linearMoveSetup(double x,  double y, double z, double target_speed) {
+    uint8_t retval = 0;
+    double speed = target_speed;
+    if (target_speed > _max_speed) {
+        speed = _max_speed;
+        retval = 1; // move speed capped
+    }
+    for (uint8_t i = 0; i < NUM_AXES_PER_LEG; i++) {
+        _start_cartesian[i] = _current_cartesian[i];
+    }
+    _end_cartesian[0] = x;
+    _end_cartesian[1] = y;
+    _end_cartesian[2] = z;
+    _move_progress = 0;
+    _move_start_time = millis();
+    _moving_flag = true;
+    double x_dist = _start_cartesian[0] - _end_cartesian[0];
+    double y_dist = _start_cartesian[1] - _end_cartesian[1];
+    double z_dist = _start_cartesian[2] - _end_cartesian[2];
+    _move_time = (sqrt(x_dist*x_dist + y_dist*y_dist + z_dist*z_dist) / speed) * 1000; 
+    return retval;
 }
 
 void Leg::moveAxes() {
     for (uint8_t i = 0; i < NUM_AXES_PER_LEG; i++) {
         axes[i].moveToPos(_next_angles[i]);
-        Serial.println(_next_angles[i]);
-    }
-    for (uint8_t i = 0; i < NUM_AXES_PER_LEG; i++) {
         current_angles[i] = _next_angles[i];
     }
 }
+
+ThreeByOne Leg::forwardKinematics(double axis0_angle, double axis1_angle, double axis2_angle) {
+    ThreeByOne length0(0.0, _length0, 0.0);
+    ThreeByOne length1(0.0, _length1, 0.0);
+    ThreeByOne length2(0.0, _length2, 0.0);
+
+    length0.rotateYaw(axis0_angle);
+
+    length1.rotateYaw(axis0_angle);
+    length1.rotateRoll(axis1_angle);
+
+    length2.rotateYaw(axis0_angle);
+    length2.rotateRoll(axis1_angle);
+    length2.rotateRoll(axis2_angle);
+
+    // Serial.printf("length0\n  x: %f; y: %f; z: %f\n",length0.values[0], length0.values[1], length0.values[2]);
+    // Serial.printf("length1\n  x: %f; y: %f; z: %f\n",length1.values[0], length1.values[1], length1.values[2]);
+    // Serial.printf("length2\n  x: %f; y: %f; z: %f\n",length2.values[0], length2.values[1], length2.values[2]);
+    return length0 + length1 + length2;
+}
+
