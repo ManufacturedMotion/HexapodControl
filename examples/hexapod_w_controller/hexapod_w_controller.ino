@@ -9,7 +9,7 @@ String buffer[bufferSize];
 String split_command[bufferSize];
 uint32_t num_words = 0;
 double x = 0, y = 0, z = 200, roll = 0, pitch = 0, yaw = 0, speed = 100;
-bool wait;
+bool wait false;
 
 commandFifo fifo;
 
@@ -80,9 +80,12 @@ void loop() {
 
 		while(!fifo.isEmpty()){
 
-			wait = false;
-			if (!hexapod.isBusy()){
+			if (hexapod.isBusy() && wait){
+				continue;
+			}	
+			else {
 				command = fifo.pop()
+				wait = false;
 			}		
 
 			//split on spaces
