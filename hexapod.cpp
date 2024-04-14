@@ -82,18 +82,26 @@ uint8_t Hexapod::linearMoveSetup(double x, double y, double z, double roll, doub
 }
 
 uint8_t Hexapod::legLinearMoveSetup(uint8_t leg, double x,  double y, double z, double target_speed) {
-	return legs[leg].linearMoveSetup(x, y, z, target_speed);
+
+	ThreeByOne coord = ThreeByOne(x, y, z);
+	coord.rotateYaw(_home_yaws[leg-1]);
+	return legs[leg-1].linearMoveSetup(coord.values[0], coord.values[1], coord.values[2], target_speed);
 }
 
 void Hexapod::linearMovePerform() {
-	double move_progress = (float)(millis() - _move_start_time) / ( _move_time);
-	if (move_progress <= 1.0) {
-		Position next_pos = (_end_pos - _start_pos) * move_progress + _start_pos;
-		rapidMove(next_pos);
-	}
-	for (uint8_t i = 0; i < NUM_LEGS; i++) {
-		if (legs[i].isMoving()) {
-			legs[i].linearMovePerform();
+	if (isBusy()) {
+		double move_progress = (float)(millis() - _move_start_time) / ( _move_time);
+		if (move_progress <= 1.0) {
+			Position next_pos = (_end_pos - _start_pos) * move_progress + _start_pos;
+			rapidMove(next_pos);
+		}
+		for (uint8_t i = 0; i < NUM_LEGS; i++) {
+			if (legs[i].isMoving()) {
+				legs[i].linearMovePerform();
+			}
+		}
+		if (move_progress > 1.0) {
+			_moving_flag = false;
 		}
 	}
 }
@@ -105,6 +113,14 @@ void Hexapod::moveLegs() {
 		}
 		
 	}
+}
+
+_Bool Hexapod::isBusy() {
+	for (uint8_t i = 0; i < NUM_LEGS; i++) {
+		if (legs[i].isMoving())
+			return true;
+	}
+	return _moving_flag;
 }
 
 uint8_t Hexapod::inverseKinematics(Position pos) {
@@ -150,7 +166,7 @@ uint8_t Hexapod::inverseKinematics(Position pos) {
 			_next_leg_pos[i][j] = potential_results[i][j];
 			
 		}
-		Serial.printf("Leg %d, x:%lf, y:%lf, z%lf\n",i,_next_leg_pos[i][0], _next_leg_pos[i][1], _next_leg_pos[i][2]);
+		//Serial.printf("Leg %d, x:%lf, y:%lf, z%lf\n",i,_next_leg_pos[i][0], _next_leg_pos[i][1], _next_leg_pos[i][2]);
 	}
 	return 0;
 }
