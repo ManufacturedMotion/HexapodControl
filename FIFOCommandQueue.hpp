@@ -1,12 +1,9 @@
-class FIFOCommandQueue {
-    public:
-        FIFOCommandQueue
-        Command * head;
-        Command * tail;
-        _Bool enqueue(String str_rommand);
-        _Bool dequeue(uint8_t position);
-    private:
-};
+#include <stdbool.h>
+#include <Arduino.h>
+#include <stdint.h>
+
+#ifndef fifo_command
+#define fifo_command
 
 class Command {
     public:
@@ -14,4 +11,19 @@ class Command {
         String command;
         Command * next;
     private:
-}
+};
+
+class FIFOCommandQueue {
+    public:
+        FIFOCommandQueue();
+		Command * head;
+        Command * tail;
+        void enqueue(String str_command);
+        String dequeue();
+		_Bool isEmpty();
+		uint32_t length = 0;
+    private:
+		
+};
+
+#endif

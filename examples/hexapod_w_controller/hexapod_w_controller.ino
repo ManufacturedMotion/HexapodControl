@@ -1,5 +1,5 @@
 #include "hexapod_controller.hpp"
-#include "command_fifo.hpp"
+#include "FIFOCommandQueue.hpp"
 #include <math.h>
 #include <stdbool.h>
 Hexapod hexapod; 
@@ -9,9 +9,9 @@ String buffer[bufferSize];
 String split_command[bufferSize];
 uint32_t num_words = 0;
 double x = 0, y = 0, z = 200, roll = 0, pitch = 0, yaw = 0, speed = 100;
-bool wait false;
+bool wait = false;
 
-commandFifo fifo;
+FIFOCommandQueue fifo;
 
 
 void setup() {
@@ -76,7 +76,7 @@ void loop() {
 		}	
 
 
-		fifo.addCommand(command_raw);
+		fifo.enqueue(command_raw);
 
 		while(!fifo.isEmpty()){
 
@@ -84,7 +84,7 @@ void loop() {
 				continue;
 			}	
 			else {
-				command = fifo.pop()
+				command = fifo.dequeue();
 				wait = false;
 			}		
 
@@ -249,9 +249,9 @@ void updateVariables(String current_command_substring){
 		splitString(current_command_substring, 'H', buffer, num_words);
 		String wait_str = buffer[1];
 		if (wait_str == "1") 
-			wait = true
+			wait = true;
 		else if (wait_str == "0")
-			wait = false
+			wait = false;
 		else{
 			Serial.println("Error! Unknown entry for wait value, not updating value");
 		}
