@@ -20,9 +20,27 @@ void loop() {
 
     if (Serial.available() > 0 || Serial4.available() > 0) {
 		if (Serial.available() > 0) {
-   			String command_raw = Serial.readStringUntil('\n');
-   			Serial.println("Received from serial\n");
-			Serial.println(command_raw);
+  			while (Serial.available() > 0) {
+    			char receivedChar = Serial.read();
+
+    			if (receivedChar == '\n') {
+      				// End of word, process the complete word
+      				Serial.println("Input from serial monitor: ");
+      				Serial.println(command_raw);
+
+      				// Reset bufferIndex for the next word
+      				bufferIndex = 0;
+    			} else {
+      				// Add the character to the buffer
+      				if (bufferIndex < bufferSize - 1) {
+        				command_raw += receivedChar;
+						bufferIndex++;
+      				} else {
+        				// Buffer overflow, handle error or reset the buffer
+        				bufferIndex = 0;
+      				}
+    			}
+			}
 		}
 		else {
   			while (Serial4.available() > 0) {
