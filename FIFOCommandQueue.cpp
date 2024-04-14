@@ -4,8 +4,6 @@
 
 
 void FIFOCommandQueue::enqueue(String str_command) {
-    Serial.println("enque: command is");
-	Serial.println(str_command);
 	Command* new_command = new Command(str_command);
 	if (head == NULL) {
         head = new_command;
@@ -14,15 +12,12 @@ void FIFOCommandQueue::enqueue(String str_command) {
         tail->next = new_command;
     }
     tail = new_command;
-	Serial.println(head->command);
 	length++;
 }
 
 String FIFOCommandQueue::dequeue() {
     if (head != NULL) {
         String ret_string = head->command;
-		Serial.println("deququ:");
-		Serial.println(ret_string);
         Command* temp = head;
 		head = head->next;
 		delete temp;
@@ -30,7 +25,6 @@ String FIFOCommandQueue::dequeue() {
         return ret_string;
     }
     else {
-		Serial.println("womp womp");
         return String("");
     }
 }
