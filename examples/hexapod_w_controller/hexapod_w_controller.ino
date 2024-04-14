@@ -4,6 +4,9 @@ Hexapod hexapod;
 
 const int bufferSize = 64;
 double x = 0, y = 0, z = 200, roll = 0, pitch = 0, yaw = 0, speed = 100;
+String split_command[bufferSize];
+uint32_t num_words = 0;
+String buffer[bufferSize];
 
 void setup() {
 
@@ -66,14 +69,10 @@ void loop() {
 			}
 		}	
 
-		String split_command[bufferSize];
-		uint32_t num_words = 0;
 		command = command_raw;
 		
 		//split on spaces
 		splitString(command, ' ', split_command, num_words);
-
-		String buffer[bufferSize];
 
 		//G-code commands		
 		if (split_command[0].startsWith('g')) {
