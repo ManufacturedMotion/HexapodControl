@@ -1,9 +1,12 @@
 #include "hexapod_controller.hpp"
+#include "command_fifo.hpp"
 #include <math.h>
 Hexapod hexapod; 
 
 const int bufferSize = 64;
 double x = 0, y = 0, z = 200, roll = 0, pitch = 0, yaw = 0, speed = 100;
+commandFifo fifo;
+
 
 void setup() {
 
@@ -66,9 +69,16 @@ void loop() {
 			}
 		}	
 
+
+		//if working, move these to global??
 		String split_command[bufferSize];
 		uint32_t num_words = 0;
-		command = command_raw;
+		
+		fifo.addCommand(command_raw);
+
+		while(!fifo.isEmpty()){} //HERE needs to be fixed
+
+		command = fifo.pop()
 		
 		//split on spaces
 		splitString(command, ' ', split_command, num_words);
@@ -148,7 +158,6 @@ void loop() {
 			}
 
 		}
-
 
     	else {
 
