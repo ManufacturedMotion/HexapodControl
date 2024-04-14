@@ -3,6 +3,7 @@
 Hexapod hexapod; 
 
 const int bufferSize = 64;
+double x = 0, y = 0, z = 200, roll = 0, pitch = 0, yaw = 0, speed = 100;
 
 void setup() {
 
@@ -13,7 +14,6 @@ void setup() {
 
 void loop() {
   
-    double x = 0, y = 0, z = 200, roll = 0, pitch = 0, yaw = 0, speed = 100;
     int bufferIndex = 0;
 	String command;
 	String command_raw;
@@ -79,54 +79,55 @@ void loop() {
 		if (split_command[0].startsWith('g')) {
 
 			splitString(split_command[0], 'G', buffer, num_words);
-			if(!buffer[1].equals("1")){
-				Serial.println("Error: only G1 implemented");
-				Serial4.println("Error: only G1 implemented");
+			if(!buffer[1].equals("0") or !buffer[1].equals("1")){
+				Serial.println("Error: only G0 and G1 implemented");
+				Serial4.println("Error: only G0 and G1 implemented");
 			}
 			else {
-        		String current_command_substring;
-			
-				uint8_t word_count = num_words;	
-				for(uint8_t i = 0; i < word_count; i++) {
-		
-					current_command_substring = split_command[i];
-					
-					if (current_command_substring.startsWith('x')) {
-						splitString(current_command_substring, 'X', buffer, num_words);
-                		String x_str = buffer[1]; float x_float = x_str.toFloat(); x = (double)x_float;
-					}
-					else if (current_command_substring.startsWith('y')) {
-						splitString(current_command_substring, 'Y', buffer, num_words);
-                		String y_str = buffer[1]; float y_float = y_str.toFloat(); y = (double)y_float;
-					}        		
-					else if (current_command_substring.startsWith('z')) {
-						splitString(current_command_substring, 'Z', buffer, num_words);
-                		String z_str = buffer[1]; float z_float = z_str.toFloat(); z = (double)z_float;
-					}
-					else if (current_command_substring.startsWith('r')) {
-						splitString(current_command_substring, 'R', buffer, num_words);
-                		String roll_str = buffer[1]; float roll_float = roll_str.toFloat(); roll = (double)roll_float;
-					}
-					else if (current_command_substring.startsWith('p')) {
-						splitString(current_command_substring, 'P', buffer, num_words);
-                		String pitch_str = buffer[1]; float pitch_float = pitch_str.toFloat(); pitch = (double)pitch_float;
-					}
-					else if (current_command_substring.startsWith('w')) {
-						splitString(current_command_substring, 'W', buffer, num_words);
-                		String yaw_str = buffer[1]; float yaw_float = yaw_str.toFloat(); yaw = (double)yaw_float;
-					}
-					else if (current_command_substring.startsWith('s')) {
-						splitString(current_command_substring, 'S', buffer, num_words);
-                		String speed_str = buffer[1]; float speed_float = speed_str.toFloat(); speed = (double)speed_float;
-					}
-
-				}	
-
-        		Serial.printf("parsing success; x, y, z is %f, %f, %f\n roll, pitch, yaw, speed are %f, %f, %f, %f\n", x, y, z, roll, pitch, yaw, speed);
-        		Serial4.printf("parsing success; x, y, z is %f, %f, %f\n roll, pitch, yaw, speed are %f, %f, %f, %f\n", x, y, z, roll, pitch, yaw, speed);
-				hexapod.linearMoveSetup(x, y, z, roll, pitch, yaw, speed);
 	
-      		}
+        		String current_command_substring;
+				
+				if (buffer[1].equals("0")){
+			
+					uint8_t word_count = num_words;	
+					for(uint8_t i = 0; i < word_count; i++) {
+		
+						current_command_substring = split_command[i];
+						updateVariables(current_command_substring);
+						
+					}	
+
+        			Serial.printf("rapid move parsing success; x, y, z is %f, %f, %f\n roll, pitch, yaw, speed are %f, %f, %f, %f\n", x, y, z, roll, pitch, yaw, speed);
+        			Serial4.printf("rapid move parsing success; x, y, z is %f, %f, %f\n roll, pitch, yaw, speed are %f, %f, %f, %f\n", x, y, z, roll, pitch, yaw, speed);
+					hexapod.rapidMove(x, y, z, roll, pitch, yaw);
+	
+      			}
+		
+				else if (buffer[1].equals("1")){
+			
+					uint8_t word_count = num_words;	
+					for(uint8_t i = 0; i < word_count; i++) {
+		
+						current_command_substring = split_command[i];
+						updateVariables(current_command_substring);
+						
+					}	
+
+        			Serial.printf("linear move parsing success; x, y, z is %f, %f, %f\n roll, pitch, yaw, speed are %f, %f, %f, %f\n", x, y, z, roll, pitch, yaw, speed);
+        			Serial4.printf("linear move parsing success; x, y, z is %f, %f, %f\n roll, pitch, yaw, speed are %f, %f, %f, %f\n", x, y, z, roll, pitch, yaw, speed);
+					hexapod.linearMoveSetup(x, y, z, roll, pitch, yaw, speed);
+	
+      			}
+		
+			}
+		}
+		
+		else if (split_command[0].startsWith('p')) {
+			splitString(split_command[0], 'P', buffer, num_words);	
+			if (buffer[1] == "0") {
+			
+				Serial.println("parsing success; starfish preset selected (move all motors to zero)\n");
+			}
 		}
 		
 		else if (split_command[0].startsWith('p')) {
@@ -207,4 +208,36 @@ void printArray(String array[], uint32_t size) {
     Serial4.println(); 
 }
 
+//update x y z roll pitch yaw, etc
+void updateVariables(String current_command_substring){
 
+	if (current_command_substring.startsWith('x')) {
+        splitString(current_command_substring, 'X', buffer, num_words);
+    	String x_str = buffer[1]; float x_float = x_str.toFloat(); x = (double)x_float;
+    }
+    else if (current_command_substring.startsWith('y')) {
+        splitString(current_command_substring, 'Y', buffer, num_words);
+        String y_str = buffer[1]; float y_float = y_str.toFloat(); y = (double)y_float;
+    }
+    else if (current_command_substring.startsWith('z')) {
+        splitString(current_command_substring, 'Z', buffer, num_words);
+        String z_str = buffer[1]; float z_float = z_str.toFloat(); z = (double)z_float;
+    }
+    else if (current_command_substring.startsWith('r')) {
+        splitString(current_command_substring, 'R', buffer, num_words);
+        String roll_str = buffer[1]; float roll_float = roll_str.toFloat(); roll = (double)roll_float;
+    }
+    else if (current_command_substring.startsWith('p')) {
+        splitString(current_command_substring, 'P', buffer, num_words);
+        String pitch_str = buffer[1]; float pitch_float = pitch_str.toFloat(); pitch = (double)pitch_float;
+    }
+    else if (current_command_substring.startsWith('w')) {
+        splitString(current_command_substring, 'W', buffer, num_words);
+        String yaw_str = buffer[1]; float yaw_float = yaw_str.toFloat(); yaw = (double)yaw_float;
+    }
+    else if (current_command_substring.startsWith('s')) {
+        splitString(current_command_substring, 'S', buffer, num_words);
+    	String speed_str = buffer[1]; float speed_float = speed_str.toFloat(); speed = (double)speed_float;
+	}
+
+}
