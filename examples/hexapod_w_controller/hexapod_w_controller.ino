@@ -78,7 +78,7 @@ void loop() {
 		if (split_command[0].startsWith('g')) {
 
 			splitString(split_command[0], 'G', buffer, num_words);
-			if(!buffer[1].equals("0") or !buffer[1].equals("1")){
+			if(!buffer[1].equals("0") and !buffer[1].equals("1")){
 				Serial.println("Error: only G0 and G1 implemented");
 				Serial4.println("Error: only G0 and G1 implemented");
 			}
