@@ -126,14 +126,6 @@ void loop() {
 			if (buffer[1] == "0") {
 			
 				Serial.println("parsing success; starfish preset selected (move all motors to zero)\n");
-			}
-		}
-		
-		else if (split_command[0].startsWith('p')) {
-			splitString(split_command[0], 'P', buffer, num_words);	
-			if (buffer[1] == "0") {
-			
-				Serial.println("parsing success; starfish preset selected (move all motors to zero)\n");
 				Serial4.println("parsing success; starfish preset selected (move all motors to zero)\n");
 				hexapod.moveToZeros();
 
