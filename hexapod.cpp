@@ -184,7 +184,9 @@ uint8_t Hexapod::inverseKinematics(Position pos) {
 			_next_leg_pos[i][j] = potential_results[i][j];
 			
 		}
-		//Serial.printf("Leg %d, x:%lf, y:%lf, z%lf\n",i,_next_leg_pos[i][0], _next_leg_pos[i][1], _next_leg_pos[i][2]);
+		if (DEBUG) {
+			Serial.printf("Leg %d, x:%lf, y:%lf, z%lf\n",i,_next_leg_pos[i][0], _next_leg_pos[i][1], _next_leg_pos[i][2]);
+		}
 	}
 	return 0;
 }
@@ -201,7 +203,9 @@ _Bool Hexapod::postCheckSafeCoords(double x, double y, double z) {
 
 void Hexapod::forwardKinematics(double angle0, double angle1, double angle2) {
 	ThreeByOne resulting_pos = legs[0].forwardKinematics(angle0, angle1, angle2);
-    Serial.printf("Result\n  x: %f; y: %f; z: %f\n", resulting_pos.values[0], resulting_pos.values[1], resulting_pos.values[2]);
+    if (DEBUG) {
+		Serial.printf("Result\n  x: %f; y: %f; z: %f\n", resulting_pos.values[0], resulting_pos.values[1], resulting_pos.values[2]);
+	}
 }
 
 void Hexapod::runSpeed() {
