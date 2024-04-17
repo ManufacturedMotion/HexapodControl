@@ -1,4 +1,5 @@
 #include "hexapod_controller.hpp"
+#include "hexapod.hpp"
 #include "FIFOCommandQueue.hpp"
 #include <math.h>
 #include <stdbool.h>
@@ -11,6 +12,7 @@ uint32_t num_words = 0;
 double x = 0, y = 0, z = 200, roll = 0, pitch = 0, yaw = 0, speed = 100;
 bool wait = false;
 
+Position position;
 FIFOCommandQueue fifo;
 
 
@@ -24,6 +26,7 @@ void loop() {
 
   String command = "";
   String command_from_fifo = "";
+  uint32_t cmd_line_word_count = 0;
 
   if (Serial.available() > 0 || Serial4.available() > 0) {
     if (Serial4.available() > 0) {
@@ -38,7 +41,7 @@ void loop() {
 
   if (!fifo.isEmpty()) {
 
-    if (hexapod.isBusy() && wait) {
+    if (hexapod.isBusy() || wait) {
 
     } else {
       command_from_fifo = fifo.dequeue();
@@ -46,6 +49,7 @@ void loop() {
 
       //split on spaces
       splitString(command_from_fifo, ' ', split_command, num_words);
+      cmd_line_word_count = num_words;
 
       //G-code commands
       if (split_command[0].startsWith('g')) {
@@ -60,31 +64,32 @@ void loop() {
 
           if (buffer[1].equals("0")) {
 
-            uint8_t word_count = num_words;
-            for (uint8_t i = 0; i < word_count; i++) {
+            for (uint8_t i = 0; i < cmd_line_word_count; i++) {
 
               current_command_substring = split_command[i];
               updateVariables(current_command_substring);
+              position.set(x, y, z, roll, pitch, yaw); 
+                
             }
 
             Serial.printf("rapid move parsing success; x, y, z is %f, %f, %f\n roll, pitch, yaw, speed are %f, %f, %f, %f\n", x, y, z, roll, pitch, yaw, speed);
             Serial4.printf("rapid move parsing success; x, y, z is %f, %f, %f\n roll, pitch, yaw, speed are %f, %f, %f, %f\n", x, y, z, roll, pitch, yaw, speed);
-            hexapod.rapidMove(x, y, z, roll, pitch, yaw);
+            hexapod.rapidMove(position);
 
           }
 
           else if (buffer[1].equals("1")) {
 
-            uint8_t word_count = num_words;
-            for (uint8_t i = 0; i < word_count; i++) {
+            for (uint8_t i = 0; i < cmd_line_word_count; i++) {
 
               current_command_substring = split_command[i];
               updateVariables(current_command_substring);
+              position.set(x, y, z, roll, pitch, yaw); 
             }
 
             Serial.printf("linear move parsing success; x, y, z is %f, %f, %f\n roll, pitch, yaw, speed are %f, %f, %f, %f\n", x, y, z, roll, pitch, yaw, speed);
             Serial4.printf("linear move parsing success; x, y, z is %f, %f, %f\n roll, pitch, yaw, speed are %f, %f, %f, %f\n", x, y, z, roll, pitch, yaw, speed);
-            hexapod.linearMoveSetup(x, y, z, roll, pitch, yaw, speed);
+            hexapod.linearMoveSetup(position, speed);
           }
         }
       }
@@ -185,4 +190,5 @@ void updateVariables(String current_command_substring) {
     wait = buffer[1].toInt();
   }
 }
+
 
