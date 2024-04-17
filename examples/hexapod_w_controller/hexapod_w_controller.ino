@@ -15,7 +15,6 @@ bool wait = false;
 Position position;
 FIFOCommandQueue fifo;
 
-
 void setup() {
 
   Serial.begin(115200);
@@ -190,5 +189,3 @@ void updateVariables(String current_command_substring) {
     wait = buffer[1].toInt();
   }
 }
-
-
