@@ -11,14 +11,15 @@ void loop() {
   short unsigned int _, leg, motor;
   double pos;
   double x, y, z, roll, pitch, yaw, speed;
+  String command = "";
 
-  	if (Serial.available() > 0 || Serial4.available (0)) {
+  	if (Serial.available() > 0 || Serial4.available() > 0) {
 		if (Serial.available() > 0){
-    		String command = Serial.readStringUntil('\n');
+    		command = Serial.readStringUntil('\n');
 			Serial4.println("Received\n");
 		}
 		else {
-    		String command = Serial4.readStringUntil('\n');
+    		command = Serial4.readStringUntil('\n');
     		Serial4.println("Received\n");
 		}
       uint8_t command_type = command.toInt();

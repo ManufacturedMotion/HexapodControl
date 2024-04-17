@@ -1,12 +1,19 @@
 #include "hexapod_controller.hpp"
+#include "hexapod.hpp"
+#include "FIFOCommandQueue.hpp"
 #include <math.h>
+#include <stdbool.h>
 Hexapod hexapod;
 
 const int bufferSize = 64;
-double x = 0, y = 0, z = 200, roll = 0, pitch = 0, yaw = 0, speed = 100;
+String buffer[bufferSize];
 String split_command[bufferSize];
 uint32_t num_words = 0;
-String buffer[bufferSize];
+double x = 0, y = 0, z = 200, roll = 0, pitch = 0, yaw = 0, speed = 100;
+bool wait = false;
+
+Position position;
+FIFOCommandQueue fifo;
 
 void setup() {
 
@@ -15,7 +22,10 @@ void setup() {
 }
 
 void loop() {
+
   String command = "";
+  String command_from_fifo = "";
+  uint32_t cmd_line_word_count = 0;
 
   if (Serial.available() > 0 || Serial4.available() > 0) {
     if (Serial4.available() > 0) {
@@ -25,81 +35,93 @@ void loop() {
       command = Serial.readStringUntil('\n');
     }
 
-    splitString(command, ' ', split_command, num_words);
+    fifo.enqueue(command);
+  }
 
-    //G-code commands
-    if (split_command[0].startsWith('g')) {
+  if (!fifo.isEmpty()) {
 
-      splitString(split_command[0], 'G', buffer, num_words);
-      if (!buffer[1].equals("0") and !buffer[1].equals("1")) {
-        Serial.println("Error: only G0 and G1 implemented");
-        Serial4.println("Error: only G0 and G1 implemented");
-      } else {
+    if (hexapod.isBusy() || wait) {
 
-        String current_command_substring;
+    } else {
+      command_from_fifo = fifo.dequeue();
+      wait = false;
 
-        if (buffer[1].equals("0")) {
+      //split on spaces
+      splitString(command_from_fifo, ' ', split_command, num_words);
+      cmd_line_word_count = num_words;
 
-          uint8_t word_count = num_words;
-          for (uint8_t i = 0; i < word_count; i++) {
+      //G-code commands
+      if (split_command[0].startsWith('g')) {
 
-            current_command_substring = split_command[i];
-            updateVariables(current_command_substring);
+        splitString(split_command[0], 'G', buffer, num_words);
+        if (!buffer[1].equals("0") and !buffer[1].equals("1")) {
+          Serial.printf("Error: only G0 and G1 implemented");
+          Serial4.printf("Error: only G0 and G1 implemented");
+        } else {
+
+          String current_command_substring;
+
+          if (buffer[1].equals("0")) {
+
+            for (uint8_t i = 0; i < cmd_line_word_count; i++) {
+
+              current_command_substring = split_command[i];
+              updateVariables(current_command_substring);
+              position.set(x, y, z, roll, pitch, yaw); 
+                
+            }
+
+            Serial.printf("rapid move parsing success; x, y, z is %f, %f, %f\n roll, pitch, yaw, speed are %f, %f, %f, %f\n", x, y, z, roll, pitch, yaw, speed);
+            Serial4.printf("rapid move parsing success; x, y, z is %f, %f, %f\n roll, pitch, yaw, speed are %f, %f, %f, %f\n", x, y, z, roll, pitch, yaw, speed);
+            hexapod.rapidMove(position);
+
           }
 
-          Serial.printf("rapid move parsing success; x, y, z is %f, %f, %f\n roll, pitch, yaw, speed are %f, %f, %f, %f\n", x, y, z, roll, pitch, yaw, speed);
-          Serial4.printf("rapid move parsing success; x, y, z is %f, %f, %f\n roll, pitch, yaw, speed are %f, %f, %f, %f\n", x, y, z, roll, pitch, yaw, speed);
-          hexapod.rapidMove(x, y, z, roll, pitch, yaw);
+          else if (buffer[1].equals("1")) {
 
-        }
+            for (uint8_t i = 0; i < cmd_line_word_count; i++) {
 
-        else if (buffer[1].equals("1")) {
+              current_command_substring = split_command[i];
+              updateVariables(current_command_substring);
+              position.set(x, y, z, roll, pitch, yaw); 
+            }
 
-          uint8_t word_count = num_words;
-          for (uint8_t i = 0; i < word_count; i++) {
-
-            current_command_substring = split_command[i];
-            updateVariables(current_command_substring);
+            Serial.printf("linear move parsing success; x, y, z is %f, %f, %f\n roll, pitch, yaw, speed are %f, %f, %f, %f\n", x, y, z, roll, pitch, yaw, speed);
+            Serial4.printf("linear move parsing success; x, y, z is %f, %f, %f\n roll, pitch, yaw, speed are %f, %f, %f, %f\n", x, y, z, roll, pitch, yaw, speed);
+            hexapod.linearMoveSetup(position, speed);
           }
-
-          Serial.printf("linear move parsing success; x, y, z is %f, %f, %f\n roll, pitch, yaw, speed are %f, %f, %f, %f\n", x, y, z, roll, pitch, yaw, speed);
-          Serial4.printf("linear move parsing success; x, y, z is %f, %f, %f\n roll, pitch, yaw, speed are %f, %f, %f, %f\n", x, y, z, roll, pitch, yaw, speed);
-          hexapod.linearMoveSetup(x, y, z, roll, pitch, yaw, speed);
         }
       }
-    }
 
-    else if (split_command[0].startsWith('p')) {
-      splitString(split_command[0], 'P', buffer, num_words);
-      if (buffer[1] == "0") {
+      else if (split_command[0].startsWith('p')) {
+        splitString(split_command[0], 'P', buffer, num_words);
+        if (buffer[1] == "0") {
 
-        Serial.println("parsing success; starfish preset selected (move all motors to zero)\n");
-        Serial4.println("parsing success; starfish preset selected (move all motors to zero)\n");
-        hexapod.moveToZeros();
+          Serial.printf("parsing success; starfish preset selected (move all motors to zero)\n");
+          Serial4.printf("parsing success; starfish preset selected (move all motors to zero)\n");
+          hexapod.moveToZeros();
+          return;
+
+        }
+
+        else {
+
+          Serial.printf("parser detected input for a preset that is not yet supported");
+          Serial4.printf("parser detected input for a preset that is not yet supported");
+        }
 
       }
 
       else {
 
-        Serial.printf("Error 406: Not Acceptable Input.\n");
-        Serial4.printf("Error 406: Not Acceptable Input.\n");
+        Serial.printf("Unsupported input recieved");
+        Serial4.printf("Unsupported input recieved");
       }
-
     }
-
-
-    else {
-
-      Serial.println("Unsupported input recieved");
-      Serial4.println("Unsupported input recieved");
-      Serial.println(command);
-      Serial4.println(command);
-    }
-
-    //clear strings so command not repeated
-    command = "";
   }
-  hexapod.runSpeed();
+
+
+  //call move every iteration of loop
   hexapod.linearMovePerform();
 }
 
@@ -131,55 +153,39 @@ void splitString(String command, String sub_string, String split_words[], uint32
   num_words = word_index + 1;
 }
 
-//print buffers for debug
-void printArray(String array[], uint32_t size) {
-  for (uint32_t i = 0; i < size; i++) {
-    Serial.println(array[i]);
-    Serial4.println(array[i]);
-    Serial.println(" ");
-    Serial4.println(" ");
-  }
-  Serial.println();
-  Serial4.println();
-}
-
 //update x y z roll pitch yaw, etc
 void updateVariables(String current_command_substring) {
 
   if (current_command_substring.startsWith('x')) {
     splitString(current_command_substring, 'X', buffer, num_words);
     String x_str = buffer[1];
-    float x_float = x_str.toFloat();
-    x = (double)x_float;
+    x = x_str.toFloat();
   } else if (current_command_substring.startsWith('y')) {
     splitString(current_command_substring, 'Y', buffer, num_words);
     String y_str = buffer[1];
-    float y_float = y_str.toFloat();
-    y = (double)y_float;
+    y = y_str.toFloat();
   } else if (current_command_substring.startsWith('z')) {
     splitString(current_command_substring, 'Z', buffer, num_words);
     String z_str = buffer[1];
-    float z_float = z_str.toFloat();
-    z = (double)z_float;
+    z = z_str.toFloat();
   } else if (current_command_substring.startsWith('r')) {
     splitString(current_command_substring, 'R', buffer, num_words);
     String roll_str = buffer[1];
-    float roll_float = roll_str.toFloat();
-    roll = (double)roll_float;
+    roll = roll_str.toFloat();
   } else if (current_command_substring.startsWith('p')) {
     splitString(current_command_substring, 'P', buffer, num_words);
     String pitch_str = buffer[1];
-    float pitch_float = pitch_str.toFloat();
-    pitch = (double)pitch_float;
+    pitch = pitch_str.toFloat();
   } else if (current_command_substring.startsWith('w')) {
     splitString(current_command_substring, 'W', buffer, num_words);
     String yaw_str = buffer[1];
-    float yaw_float = yaw_str.toFloat();
-    yaw = (double)yaw_float;
+    yaw = yaw_str.toFloat();
   } else if (current_command_substring.startsWith('s')) {
     splitString(current_command_substring, 'S', buffer, num_words);
     String speed_str = buffer[1];
-    float speed_float = speed_str.toFloat();
-    speed = (double)speed_float;
+    speed = speed_str.toFloat();
+  } else if (current_command_substring.startsWith('h')) {
+    splitString(current_command_substring, 'H', buffer, num_words);
+    wait = buffer[1].toInt();
   }
 }

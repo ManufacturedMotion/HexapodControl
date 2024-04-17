@@ -81,6 +81,24 @@ uint8_t Hexapod::linearMoveSetup(double x, double y, double z, double roll, doub
 	return retval;
 }
 
+uint8_t Hexapod::linearMoveSetup(Position next_pos, double target_speed) {
+  _end_pos.setPos(next_pos); 
+  _start_pos.setPos(_current_pos);
+  uint8_t retval = 0;
+    double speed = target_speed;
+    if (target_speed > _max_speed) {
+        speed = _max_speed;
+        retval = 1; // move speed capped
+    }
+  _move_progress = 0;
+  _move_start_time = millis();
+  Position pos_delta = _end_pos - _start_pos;
+  _move_time = (fabs(pos_delta.magnitude()) / speed) * 1000; //convert to seconds
+  _moving_flag = true;
+  return retval;
+}
+
+
 uint8_t Hexapod::legLinearMoveSetup(uint8_t leg, double x,  double y, double z, double target_speed) {
 
 	ThreeByOne coord = ThreeByOne(x, y, z);
