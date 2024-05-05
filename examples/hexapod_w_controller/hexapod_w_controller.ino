@@ -5,6 +5,12 @@
 #include <stdbool.h>
 Hexapod hexapod;
 
+#if DEBUG
+#define SERIAL_OUTPUT Serial
+#else
+#define SERIAL_OUTPUT Serial4
+#endif
+
 const int bufferSize = 64;
 String buffer[bufferSize];
 String split_command[bufferSize];
@@ -16,9 +22,7 @@ Position position;
 FIFOCommandQueue fifo;
 
 void setup() {
-
-  Serial.begin(115200);
-  Serial4.begin(115200);
+  SERIAL_OUTPUT.begin(115200);
 }
 
 void loop() {
@@ -27,14 +31,8 @@ void loop() {
   String command_from_fifo = "";
   uint32_t cmd_line_word_count = 0;
 
-  if (Serial.available() > 0 || Serial4.available() > 0) {
-    if (Serial4.available() > 0) {
-      command = Serial4.readStringUntil('\n');
-      Serial.print(command);
-    } else {
-      command = Serial.readStringUntil('\n');
-    }
-
+  if (SERIAL_OUTPUT.available() > 0) {
+    command = SERIAL_OUTPUT.readStringUntil('\n');
     fifo.enqueue(command);
   }
 
@@ -55,8 +53,7 @@ void loop() {
 
         splitString(split_command[0], 'G', buffer, num_words);
         if (!buffer[1].equals("0") and !buffer[1].equals("1")) {
-          Serial.printf("Error: only G0 and G1 implemented");
-          Serial4.printf("Error: only G0 and G1 implemented");
+          SERIAL_OUTPUT.printf("Error: only G0 and G1 implemented");
         } else {
 
           String current_command_substring;
@@ -71,8 +68,7 @@ void loop() {
                 
             }
 
-            Serial.printf("rapid move parsing success; x, y, z is %f, %f, %f\n roll, pitch, yaw, speed are %f, %f, %f, %f\n", x, y, z, roll, pitch, yaw, speed);
-            Serial4.printf("rapid move parsing success; x, y, z is %f, %f, %f\n roll, pitch, yaw, speed are %f, %f, %f, %f\n", x, y, z, roll, pitch, yaw, speed);
+            SERIAL_OUTPUT.printf("rapid move parsing success; x, y, z is %f, %f, %f\n roll, pitch, yaw, speed are %f, %f, %f, %f\n", x, y, z, roll, pitch, yaw, speed);
             hexapod.rapidMove(position);
 
           }
@@ -86,8 +82,7 @@ void loop() {
               position.set(x, y, z, roll, pitch, yaw); 
             }
 
-            Serial.printf("linear move parsing success; x, y, z is %f, %f, %f\n roll, pitch, yaw, speed are %f, %f, %f, %f\n", x, y, z, roll, pitch, yaw, speed);
-            Serial4.printf("linear move parsing success; x, y, z is %f, %f, %f\n roll, pitch, yaw, speed are %f, %f, %f, %f\n", x, y, z, roll, pitch, yaw, speed);
+            SERIAL_OUTPUT.printf("linear move parsing success; x, y, z is %f, %f, %f\n roll, pitch, yaw, speed are %f, %f, %f, %f\n", x, y, z, roll, pitch, yaw, speed);
             hexapod.linearMoveSetup(position, speed);
           }
         }
@@ -97,8 +92,7 @@ void loop() {
         splitString(split_command[0], 'P', buffer, num_words);
         if (buffer[1] == "0") {
 
-          Serial.printf("parsing success; starfish preset selected (move all motors to zero)\n");
-          Serial4.printf("parsing success; starfish preset selected (move all motors to zero)\n");
+          SERIAL_OUTPUT.printf("parsing success; starfish preset selected (move all motors to zero)\n");
           hexapod.moveToZeros();
           return;
 
@@ -106,16 +100,14 @@ void loop() {
 
         else {
 
-          Serial.printf("parser detected input for a preset that is not yet supported");
-          Serial4.printf("parser detected input for a preset that is not yet supported");
+          SERIAL_OUTPUT.printf("parser detected input for a preset that is not yet supported");
         }
 
       }
 
       else {
 
-        Serial.printf("Unsupported input recieved");
-        Serial4.printf("Unsupported input recieved");
+        SERIAL_OUTPUT.printf("Unsupported input recieved");
       }
     }
   }
