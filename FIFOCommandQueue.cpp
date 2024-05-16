@@ -1,7 +1,7 @@
 #include <stdbool.h>
 #include <Arduino.h>
 #include "FIFOCommandQueue.hpp"
-
+#include "config.hpp"
 
 void FIFOCommandQueue::enqueue(String str_command) {
 	Command* new_command = new Command(str_command);
@@ -15,6 +15,7 @@ void FIFOCommandQueue::enqueue(String str_command) {
     tail = new_command;
 	tail->next = NULL;
 	length++;
+  _last_enqueue_timestamp = millis();
 }
 
 String FIFOCommandQueue::dequeue() {
@@ -31,6 +32,16 @@ String FIFOCommandQueue::dequeue() {
     }
 }
 
+String FIFOCommandQueue::readNext() {
+  if (head != NULL) {
+      String ret_string = head->command;
+      return ret_string
+  }
+  else {
+    return String("");
+  }
+}
+
 Command::Command(String str_command) {
     command = str_command;
 }
@@ -43,5 +54,16 @@ FIFOCommandQueue::FIFOCommandQueue() {
 
 	head = NULL;
 	tail = NULL;
+  _last_enqueue_timestamp = 0;
 
+}
+
+_Bool FIFOCOmmandQueue::isIdle() {
+
+  if ((millis() - _last_enqueue_timestamp) > FIFO_IDLE_THRESHOLD) { 
+    return True;
+  else {
+    return False;
+  }
+}
 }
