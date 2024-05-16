@@ -29,7 +29,7 @@ void setup() {
 void loop() {
 
   String command = "";
-  String fifo_command = "";
+  String current_command = "";
 
   if (Serial.available() > 0 || Serial4.available() > 0) {
     if (Serial4.available() > 0) {
@@ -48,8 +48,8 @@ void loop() {
     } else {
       //set wait to default of fasle & get the command from the fifo after checking for optimizations
       wait = false;
-      fifo_command = getFifoCommand();
-      executeCommand(fifo_command);
+      current_command = getFifoCommand();
+      executeCommand(current_command);
     } 
   }
   //call move every iteration of loop
@@ -175,8 +175,8 @@ void executeCommand(String command) {
 
 //get the next fifo command, if possible perform any optimizations before returning the command
 String getFifoCommand() {
-  String fifo_command = fifo.dequeue();
-  String command_type = getCommandType(fifo_command);
+  String command = fifo.dequeue();
+  String command_type = getCommandType(command);
   if (command_type == "step") {
     //if fifo is still getting commands but the next command is not a step, we will execute the current step regardless of size (no optimization can be made)
     //TODO - do we actually care if fifo is idle? Logic would be the same regardless right? seems dangerous to force a wait until idle - what if we are never idle?
@@ -184,33 +184,35 @@ String getFifoCommand() {
       if (fifo.length > 0) {
         String next_command_type = getCommandType(fifo.readNext());
         if (next_command_type != "step") {
-          return fifo_command;
+          return command;
         }
         //otherwise the next command is a step; check if our current command exceeds step threshold. If not, we can combine steps until we have met the threshold or the next command is not a step 
         else {
-          TODO - get distance for current step
-          String current_command = fifo_command;
+          String current_command = command;
           String next_command = fifo.readNext();
+          double step_size = hexapod.getDistance(getPosFromCommand(command));
           while ((step_size < STEP_THRESHOLD) and !fifo.isEmpty() and (getCommandType(next_command) == "step")) {
-            fifo_command = combineSteps(fifo_command, next_command);
-            TODO - same update to step_size as above
+            command = combineSteps(command, next_command);
+            hexapod.getDistance(getPosFromCommand(command));
             current_command = fifo.dequeue();
             next_command = fifo.readNext();
           }
-          return fifo_command;
+          return command;
         }
       }
     //}
+  }
 // copy/paste/edit for debug SERIAL_OUTPUT.print("Teensy Received: " + command + ".\n");
-  return fifo_command;
+  return command;
 }
 
 
 //TODO - do we need to combine roll pitch yaw speed or wait differently?
+// I am thinking we want this to be part of the position class so we can just add two position types -- reduce clutter in the .ino file
 String combineSteps(String step_1, String step_2) {
   double x_1 = 0, y_1 = 0, z_1 = 0, roll_1 = 0, pitch_1 = 0, yaw_1= 0, speed_1 = 0;
   double x_2 = 0, y_2 = 0, z_2 = 0, roll_2 = 0, pitch_2 = 0, yaw_2= 0, speed_2 = 0;
-  bool wait1 = 0; wait2 = 0;  
+  bool wait_1 = 0, wait_2 = 0;  
   x_1 = step_1.substring(step_1.indexOf('X') + 1).toFloat();
   x_2 = step_2.substring(step_2.indexOf('X') + 1).toFloat();
   y_1 = step_1.substring(step_1.indexOf('Y') + 1).toFloat();
@@ -235,9 +237,23 @@ String combineSteps(String step_1, String step_2) {
   double new_pitch = (pitch_1 + pitch_2) / 2;
   double new_yaw = (yaw_1 + yaw_2) / 2;
   double new_speed = (speed_1 + speed_2) / 2;
-  bool new_wait = wait_1 or wait_2;
+  bool new_wait = wait_1 || wait_2;
   new_step += " X" + String(new_x) + " Y" + String(new_y) + " Z" + String(new_z) + " R" + String(new_roll) + " P" + String(new_pitch) + " W" + String(new_yaw) + " S" + String(new_speed) + " H" + String(new_wait);
   return new_step;
+}
+
+//get a position opbject from the current command string
+Position getPosFromCommand(String command) {
+  Position position;
+  double x = 0, y = 0, z = 0, roll = 0, pitch = 0, yaw= 0;
+  x = command.substring(command.indexOf('X') + 1).toFloat();
+  y = command.substring(command.indexOf('Y') + 1).toFloat();
+  z = command.substring(command.indexOf('Z') + 1).toFloat();
+  roll = command.substring(command.indexOf('R') + 1).toFloat();
+  pitch = command.substring(command.indexOf('P') + 1).toFloat();
+  yaw = command.substring(command.indexOf('W') + 1).toFloat();
+  position.set(x, y, z, roll, pitch, yaw);
+  return position;
 }
 
 //check the first index of the command and return a string summarizing the type

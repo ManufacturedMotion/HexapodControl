@@ -35,7 +35,7 @@ String FIFOCommandQueue::dequeue() {
 String FIFOCommandQueue::readNext() {
   if (head != NULL) {
       String ret_string = head->command;
-      return ret_string
+      return ret_string;
   }
   else {
     return String("");
@@ -58,12 +58,12 @@ FIFOCommandQueue::FIFOCommandQueue() {
 
 }
 
-_Bool FIFOCOmmandQueue::isIdle() {
+_Bool FIFOCommandQueue::isIdle() {
 
   if ((millis() - _last_enqueue_timestamp) > FIFO_IDLE_THRESHOLD) { 
-    return True;
-  else {
-    return False;
+    return true;
+  } else {
+    return false;
   }
-}
+
 }

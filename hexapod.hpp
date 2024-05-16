@@ -27,6 +27,7 @@
 			void rapidMove(Position next_pos);
 			void runSpeed();
 			_Bool isBusy();
+      double getDistance(Position target_pos);
 			
 		private:
 			uint8_t _leg_group_1[NUM_LEGS / 2] = {1,4,6}; // Divide legs into two self-stable groups
