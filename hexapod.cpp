@@ -247,10 +247,11 @@ uint8_t Hexapod::stepSetup(ThreeByOne relative_end_coord, double speed) {
 
 	double speed_mult = step_path_length / linear_path_length;
 	for (uint8_t i = 0; i < (NUM_LEGS / 2); i++) {
-		_leg_queues[_step_groups[(_next_step_group + 1) % NUM_STEP_GROUPS][i]].enqueue(relative_end_coord * -1.0, speed, true);
+		_leg_queues[_step_groups[(_next_step_group + 1) % NUM_STEP_GROUPS][i]-1].enqueue(relative_end_coord * -1.0, speed, true);
 		for (uint8_t j = 0; j < num_step_segments; j++) {
-			_leg_queues[_step_groups[_next_step_group % NUM_STEP_GROUPS][i]].enqueue(step_segment[j], speed * speed_mult, true);
+			_leg_queues[_step_groups[_next_step_group % NUM_STEP_GROUPS][i]-1].enqueue(step_segment[j], speed * speed_mult, true);
 		} 
+
 	}
 	_next_step_group++;
 	return 0;
@@ -270,7 +271,7 @@ uint16_t Hexapod::comboMovePerform() {
 				legLinearMoveSetup(i+1, _leg_queues[i].head->end_pos, _leg_queues[i].head->speed, _leg_queues[i].head->relative);
 				if (DEBUG) {
 					Serial.printf("Leg %d moving to x:%f y:%f z:%f\nRelative:%d speed:%f\n",
-					i, _leg_queues[i].head->end_pos.values[0],
+					i+1, _leg_queues[i].head->end_pos.values[0],
 					_leg_queues[i].head->end_pos.values[1], _leg_queues[i].head->end_pos.values[2],
 					_leg_queues[i].head->relative, _leg_queues[i].head->speed);
 				}
