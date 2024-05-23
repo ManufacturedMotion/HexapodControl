@@ -1,6 +1,6 @@
 #include <stdint.h>
 #include <math.h>
-#include "threebythree.hpp"
+#include "three_by_matrices.hpp"
 
 void ThreeByThree::mult_left_three_by_three(const ThreeByThree& left) {
     double temp[3][3];
@@ -80,6 +80,35 @@ ThreeByOne::ThreeByOne(double value0, double value1, double value2) {
     values[2] = value2;
 }
 
+ThreeByOne::ThreeByOne(double new_values[3]) {
+    values[0] = new_values[0];
+    values[1] = new_values[1];
+    values[2] = new_values[2];
+}
+
+ThreeByOne::ThreeByOne(const ThreeByOne& orig) {
+    values[0] = orig.values[0];
+    values[1] = orig.values[1];
+    values[2] = orig.values[2];
+}
+
+double ThreeByOne::magnitude() {
+    return sqrt((values[0]*values[0]) + (values[1]*values[1]) + (values[2]*values[2]));
+}
+
+void ThreeByOne::operator*=(double multiplier) {
+    values[0] *= multiplier;
+    values[1] *= multiplier;
+    values[2] *= multiplier;
+}
+
+ThreeByOne ThreeByOne::operator*(double multiplier) {
+    ThreeByOne ret_matrix = ThreeByOne(values);
+    ret_matrix *= multiplier;
+    return ret_matrix;
+}
+
+
 void ThreeByOne::mult_three_by_three(const ThreeByThree& left) {
     double temp[3];
     for (uint8_t i = 0; i < 3; i++) {
@@ -148,4 +177,34 @@ ThreeByOne ThreeByOne::operator+(const ThreeByOne& addend) {
     ThreeByOne result = ThreeByOne(values[0], values[1], values[2]);
     result += addend;
     return result;
+}
+
+void ThreeByOne::operator-=(const ThreeByOne& subtrahend) {
+    values[0] += subtrahend.values[0];
+    values[1] += subtrahend.values[1];
+    values[2] += subtrahend.values[2];
+}
+
+ThreeByOne ThreeByOne::operator-(const ThreeByOne& subtrahend) {
+    ThreeByOne result = ThreeByOne(values[0], values[1], values[2]);
+    result += subtrahend;
+    return result;
+}
+
+void ThreeByOne::operator/=(double divisor) {
+    values[0] /= divisor;
+    values[1] /= divisor;
+    values[2] /= divisor;
+}
+
+ThreeByOne ThreeByOne::operator/(double divisor){
+    ThreeByOne result = ThreeByOne(values[0], values[1], values[2]);
+    result /= divisor;
+    return result;
+}
+
+void ThreeByOne::floorDivide(double divisor) {
+    values[0] = floor(values[0] / divisor);
+    values[1] = floor(values[0] / divisor);
+    values[2] = floor(values[0] / divisor);
 }

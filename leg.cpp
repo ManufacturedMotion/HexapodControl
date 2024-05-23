@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <math.h>
-#include "threebythree.hpp"
+#include "three_by_matrices.hpp"
 #include <Arduino.h>
 
 double zero_points[NUM_LEGS][NUM_AXES_PER_LEG] = ZERO_POINTS;
@@ -14,6 +14,8 @@ double min_pos[NUM_LEGS][NUM_AXES_PER_LEG] = MIN_POS;
 double max_pos[NUM_LEGS][NUM_AXES_PER_LEG] = MAX_POS;
 double scale_fact[NUM_LEGS][NUM_AXES_PER_LEG] = SCALE_FACT;
 _Bool reverse_axis[NUM_LEGS][NUM_AXES_PER_LEG] = REVERSE_AXIS;
+
+enum Dimension { X = 0, Y = 1, Z = 2};
 
 Leg::Leg() {
     _leg_number = 0;
@@ -101,15 +103,23 @@ uint8_t Leg::linearMovePerform() {
         double next_x = move_progress * (_end_cartesian[0] - _start_cartesian[0]) + _start_cartesian[0];
         double next_y = move_progress * (_end_cartesian[1] - _start_cartesian[1]) + _start_cartesian[1];
         double next_z = move_progress * (_end_cartesian[2] - _start_cartesian[2]) + _start_cartesian[2];
+        _moving_flag = true;
         return rapidMove(next_x, next_y, next_z);
     }
-    _moving_flag = false;
+    else {
+        _moving_flag = false;
+    }
     return 0;
 }
 
-double Leg::linearMovement(double move_progress) {
-    return move_progress * (_end_cartesian[0] - _start_cartesian[0]) + _start_cartesian[0];
-}
+
+// double Leg::linearMovement(double move_progress, Dimension axis) {
+//     return move_progress * (_end_cartesian[axis] - _start_cartesian[axis]) + _start_cartesian[axis];
+// }
+
+// double Leg::radialMovement(double move_progress, Dimension axis) {
+//     return move_progress * 
+// }
 
 // void Leg::ISRLinearMove() {
 //     // Attach this function to an IntervalTimer on a 10-50ms interval
@@ -122,7 +132,7 @@ _Bool Leg::isMoving() {
     return _moving_flag;
 }
 
-_Bool Leg::linearMoveSetup(double x,  double y, double z, double target_speed) {
+_Bool Leg::linearMoveSetup(double x,  double y, double z, double target_speed, _Bool relative = false) {
     uint8_t retval = 0;
     double speed = target_speed;
     if (target_speed > _max_speed) {
@@ -135,6 +145,11 @@ _Bool Leg::linearMoveSetup(double x,  double y, double z, double target_speed) {
     _end_cartesian[0] = x;
     _end_cartesian[1] = y;
     _end_cartesian[2] = z;
+    // if (relative) {
+    //     _end_cartesian[0] += _current_cartesian[0];
+    //     _end_cartesian[1] += _current_cartesian[1];
+    //     _end_cartesian[2] += _current_cartesian[2];
+    // }
     _move_progress = 0;
     _move_start_time = millis();
     _moving_flag = true;
@@ -142,6 +157,7 @@ _Bool Leg::linearMoveSetup(double x,  double y, double z, double target_speed) {
     double y_dist = _start_cartesian[1] - _end_cartesian[1];
     double z_dist = _start_cartesian[2] - _end_cartesian[2];
     _move_time = (sqrt(x_dist*x_dist + y_dist*y_dist + z_dist*z_dist) / speed) * 1000; 
+    // Serial.printf("_end_cartesian: x:%f, y:%f, z:%f\n", _end_cartesian[0], _end_cartesian[1], _end_cartesian[2]);
     return retval;
 }
 

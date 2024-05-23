@@ -5,7 +5,7 @@
 #define HEXA_CONFIG
 
 	#define DEBUG true
-	#define DILLON
+	#define ZACK
 
 	
 	#ifdef DANNY	
@@ -21,7 +21,7 @@
 	#ifdef ZACK
 	
 		#define PWM_PINS {{5, 6, 7}, {4, 3, 2}, {9, 10, 8},  {12, 13, 11}, {15, 14, 18}, {23, 19, 22}}
-		#define ZERO_POINTS {{2.55, 2.4, 1.4}, {2.4, 2.25, 1.5}, {2.1, 2.4, 1.6}, {1.8, 2.35, 1.4}, {1.95, 2.3, 1.53}, {2.1, 2.35, 1.55}}
+		#define ZERO_POINTS {{2.55, 2.4, 1.4}, {2.4, 2.25, 1.5}, {2.1, 2.4, 1.6}, {1.8, 2.35, 1.4}, {1.95, 2.3, 1.53}, {2.6, 2.35, 1.55}}
 		#define MAX_POS {{PI, PI, PI}, {PI, PI, PI}, {PI, PI, PI}, {PI, PI, PI}, {PI, PI, PI}, {PI, PI, PI}}
 		#define MIN_POS {{-PI, -PI, -PI}, {-PI, -PI, -PI}, {-PI, -PI, -PI}, {-PI, -PI, -PI}, {-PI, -PI, -PI}, {-PI, -PI, -PI}}
 		#define SCALE_FACT {{0.75, 0.75, 0.75}, {0.75, 0.75, 0.75}, {0.75, 0.75, 0.75}, {0.75, 0.75, 0.75}, {0.75, 0.75, 0.75}, {0.75, 0.75, 0.75}}

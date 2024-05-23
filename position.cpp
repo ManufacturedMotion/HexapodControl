@@ -1,6 +1,7 @@
 #include "position.hpp"
 #include <stdbool.h>
 #include <math.h>
+#include "three_by_matrices.hpp"
 
 
 void Position::set(double new_X, double new_Y, double new_Z, double new_roll, double new_pitch, double new_yaw) {
@@ -107,4 +108,8 @@ _Bool Position::equals(const Position& pos) {
     if (fabs(yaw - pos.yaw) > .003)
         return false;
     return true;
+}
+
+ThreeByOne Position::coord() {
+    return ThreeByOne(X, Y, Z);
 }

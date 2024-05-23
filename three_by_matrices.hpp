@@ -16,14 +16,24 @@ class ThreeByThree {
 class ThreeByOne {
     public:
         ThreeByOne(double value0, double value1, double value2);
+        ThreeByOne(double values[3]);
+        ThreeByOne(const ThreeByOne& orig);
         double values[3];
         void mult_three_by_three(const ThreeByThree& left);
         void rotateYaw(double yaw);
         void rotatePitch(double pitch);
         void rotateRoll(double roll);
+        double magnitude();
         ThreeByOne add(const ThreeByOne& addend);
         void operator+=(const ThreeByOne& addend);
         ThreeByOne operator+(const ThreeByOne& addend);
+        void operator/=(double divisor);
+        ThreeByOne operator/(double divisor);
+        void operator*=(double multiplier);
+        ThreeByOne operator*(double multiplier);
+        void operator-=(const ThreeByOne& subtrahend);
+        ThreeByOne operator-(const ThreeByOne& subtrahend);
+        void floorDivide(double divisor);
     private:
 };
 
