@@ -12,7 +12,7 @@
 
 	#define NUM_LEGS 6
 	#define NUM_STEP_GROUPS 2
-	#define MAX_STEP_MAGNITUDE 100.0
+	#define MAX_STEP_MAGNITUDE 40.0
 	class Hexapod {
 		public:
 			Hexapod();
@@ -44,7 +44,8 @@
 			uint8_t walkSetup(double x, double y, double z, double speed);
 			uint16_t comboMovePerform();
 			void opQueueTest();
-			
+			double get_max_step_magnitude();
+
 		private:
 			uint8_t _step_groups[NUM_STEP_GROUPS][NUM_LEGS / 2] = {{1,3,5}, {2,4,6}}; // Divide legs into two self-stable groups
 			uint8_t _next_step_group = 0;
@@ -72,6 +73,8 @@
 			Position _current_pos;
 			double _move_time;
 			OperationQueue _leg_queues[NUM_LEGS];
+			ThreeByOne _current_step_permutation[NUM_STEP_GROUPS];
+			
 	};
 
 #endif

@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <math.h>
+#include <stdbool.h>
 #include "three_by_matrices.hpp"
 
 void ThreeByThree::mult_left_three_by_three(const ThreeByThree& left) {
@@ -207,6 +208,15 @@ ThreeByOne ThreeByOne::operator/(double divisor){
     ThreeByOne result = ThreeByOne(values[0], values[1], values[2]);
     result /= divisor;
     return result;
+}
+
+_Bool ThreeByOne::operator>(const ThreeByOne& right) {
+    return magnitude() > right.magnitude();
+}
+
+
+_Bool ThreeByOne::operator<(const ThreeByOne& right) {
+    return magnitude() < right.magnitude();
 }
 
 void ThreeByOne::floorDivide(double divisor) {

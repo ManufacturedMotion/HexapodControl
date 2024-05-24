@@ -198,19 +198,22 @@ uint8_t Hexapod::walkSetup(double x, double y, double z, double speed) {
 	return walkSetup(relative_end_coord, speed);
 }
 
+double Hexapod::get_max_step_magnitude() {
+	return _current_step_permutation[_next_step_group % 2].magnitude() + MAX_STEP_MAGNITUDE;
+}
 
 uint8_t Hexapod::walkSetup(ThreeByOne relative_end_coord, double speed) {
-	double linear_path_length = relative_end_coord.magnitude();
-	uint32_t num_steps = 1;
-	if (linear_path_length > MAX_STEP_MAGNITUDE) {
-		num_steps = uint32_t(linear_path_length / MAX_STEP_MAGNITUDE);
-	}
-	ThreeByOne first_step = (relative_end_coord / double(num_steps))  / 2.0;
-	firstStepSetup(first_step, speed);
-
-	ThreeByOne other_steps = relative_end_coord / double(num_steps);
-	for (uint32_t i = 1; i < num_steps; i++) {
-		stepSetup(other_steps, speed);
+	ThreeByOne end_unit_vector = relative_end_coord / relative_end_coord.magnitude();
+	ThreeByOne distance_traveled = ThreeByOne();
+	uint32_t counter = 0;
+	while (distance_traveled < relative_end_coord) {
+		ThreeByOne max_step_size = end_unit_vector * get_max_step_magnitude();
+		ThreeByOne distance_to_go = relative_end_coord - distance_traveled;
+		ThreeByOne this_step = (distance_to_go > max_step_size) ? ThreeByOne(max_step_size) : ThreeByOne(distance_to_go);
+		Serial.printf("Taking step: x:%f, y:%f, z:%f\n", this_step.values[0], this_step.values[1], this_step.values[2]);
+		stepSetup(this_step, speed);
+		distance_traveled += this_step;
+		counter++;
 	}
 }
 
@@ -230,7 +233,7 @@ uint8_t Hexapod::stepSetup(double x, double y, double z, double speed) {
 uint8_t Hexapod::stepSetup(ThreeByOne relative_end_coord, double speed) {
 	
 	double linear_path_length = relative_end_coord.magnitude();
-	if (linear_path_length > MAX_STEP_MAGNITUDE) {
+	if (linear_path_length > get_max_step_magnitude()) {
 		Serial.printf("Step size too big, try again with a smaller step");
 		return 255; //Error code for too big step size
 	}
@@ -254,6 +257,10 @@ uint8_t Hexapod::stepSetup(ThreeByOne relative_end_coord, double speed) {
 		} 
 
 	}
+	_current_step_permutation[(_next_step_group + 1) % NUM_STEP_GROUPS] += (relative_end_coord * -1.0);
+	_current_step_permutation[_next_step_group % NUM_STEP_GROUPS] += relative_end_coord;
+	
+
 	_next_step_group++;
 	return 0;
 }

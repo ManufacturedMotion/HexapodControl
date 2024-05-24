@@ -2,6 +2,7 @@
 #define THREEBYTHREE_H
  
 #include <stdint.h>
+#include <stdbool.h>
 
 class ThreeByThree {
     public:
@@ -34,6 +35,8 @@ class ThreeByOne {
         ThreeByOne operator*(double multiplier);
         void operator-=(const ThreeByOne& subtrahend);
         ThreeByOne operator-(const ThreeByOne& subtrahend);
+        _Bool operator>(const ThreeByOne& right);
+        _Bool operator<(const ThreeByOne& right);
         void floorDivide(double divisor);
     private:
 };
