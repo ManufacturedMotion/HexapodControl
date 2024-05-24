@@ -5,6 +5,9 @@
 #include <stdbool.h>
 Hexapod hexapod;
 
+_Bool checkCommand(String command);
+_Bool canFifoOptimize();
+
 #if DEBUG
 #define SERIAL_OUTPUT Serial
 #else
@@ -30,7 +33,10 @@ void loop() {
 
   String command = "";
   String current_command = "";
-
+  _Bool need_optimize = false;
+  static _Bool need_to_grow = false;
+  static _Bool called_start_grow_timer = false;
+  
   if (Serial.available() > 0 || Serial4.available() > 0) {
     if (Serial4.available() > 0) {
       command = Serial4.readStringUntil('\n');
@@ -48,8 +54,42 @@ void loop() {
     } else {
       //set wait to default of fasle & get the command from the fifo after checking for optimizations
       wait = false;
-      current_command = getFifoCommand();
-      executeCommand(current_command);
+
+      //if we are letting the fifo grow we do not want to execute any commands
+      if (!fifo.isGrowTimerActive()){
+        need_optimize = checkCommand(fifo.readIndex(0));
+        if (!need_optimize) {
+          SERIAL_OUTPUT.print("No optimization needed, executing command as is\n");
+          current_command = fifo.dequeue();
+          executeCommand(current_command);
+        }
+        else {          
+          need_to_grow = !canFifoOptimize();
+          //if we havent let the fifo grow give it some time
+          if (need_to_grow and !called_start_grow_timer){
+            SERIAL_OUTPUT.print("fifo is too short / could not make full step. letting the fifo grow\n");
+            fifo.startGrowTimer();
+            called_start_grow_timer = true;
+          }
+          //if we let the fifo grow and the command is still bad we have to execute it anyways
+          else if (need_to_grow and called_start_grow_timer){ 
+            SERIAL_OUTPUT.print("fifo growing complete - still cannot make a full step. Getting partial command\n");
+            current_command = getPartiallyOptimizedCommand();
+            SERIAL_OUTPUT.print("partial command: " + current_command + ".\n");
+            executeCommand(current_command);
+            called_start_grow_timer = false; 
+            //TODO - call Zacks return to idle move function 
+          }
+          //otherwise we have a set of commands in the fifo that now combine to meet our step threshold
+          else {
+            SERIAL_OUTPUT.print("fifo growing complete - full command could be made\n");
+            current_command = getOptimizedCommand();
+            SERIAL_OUTPUT.print("full command: " + current_command + ".\n");
+            executeCommand(current_command);
+            called_start_grow_timer = false;
+          }
+        }
+      }
     } 
   }
   //call move every iteration of loop
@@ -158,7 +198,7 @@ void executeCommand(String command) {
   }
   else if (split_command[0].startsWith('p')) {
     splitString(split_command[0], 'P', buffer, num_words);
-    if (buffer[1] == "0") {
+    if (buffer[1] == '0') {
       SERIAL_OUTPUT.printf("parsing success; starfish preset selected (move all motors to zero).\n");
       hexapod.moveToZeros();
       return;
@@ -173,94 +213,99 @@ void executeCommand(String command) {
 }
 
 
-//get the next fifo command, if possible perform any optimizations before returning the command
-String getFifoCommand() {
-  String command = fifo.dequeue();
-  String command_type = getCommandType(command);
-  if (command_type == "step") {
-    //if fifo is still getting commands but the next command is not a step, we will execute the current step regardless of size (no optimization can be made)
-    //TODO - do we actually care if fifo is idle? Logic would be the same regardless right? seems dangerous to force a wait until idle - what if we are never idle?
-    //if (!fifo.isIdle()) {
-      if (fifo.length > 0) {
-        String next_command_type = getCommandType(fifo.readNext());
-        if (next_command_type != "step") {
-          return command;
-        }
-        //otherwise the next command is a step; check if our current command exceeds step threshold. If not, we can combine steps until we have met the threshold or the next command is not a step 
-        else {
-          String current_command = command;
-          String next_command = fifo.readNext();
-          double step_size = hexapod.getDistance(getPosFromCommand(command));
-          while ((step_size < STEP_THRESHOLD) and !fifo.isEmpty() and (getCommandType(next_command) == "step")) {
-            command = combineSteps(command, next_command);
-            hexapod.getDistance(getPosFromCommand(command));
-            current_command = fifo.dequeue();
-            next_command = fifo.readNext();
-          }
-          return command;
-        }
-      }
-    //}
+//check if we can make a full step with the commands at the top of the fifo
+_Bool canFifoOptimize() {
+  //cant optimize if we only have one step
+  if (fifo.length < 2) {
+    return false;
   }
-// copy/paste/edit for debug SERIAL_OUTPUT.print("Teensy Received: " + command + ".\n");
+  Position position = getPosFromCommand(fifo.readIndex(0));
+  double step_size = hexapod.getDistance(position);
+  for (uint32_t i = 1; i < fifo.length; i++){
+      //if we hit a command that is not a step we stop the optimization. if current concatenation of steps is still too small we have to partially optimize
+      if ((step_size < STEP_THRESHOLD) and (!getCommandType(fifo.readIndex(i)).equals("step"))){
+        return false;
+      }
+      Position next_position = getPosFromCommand(fifo.readIndex(i));
+      position = position + next_position;
+      step_size = hexapod.getDistance(position);
+  } 
+  //if all of the commands in the fifo were steps but we are still below the threshold we will only be able to partially optimize
+  if (step_size < STEP_THRESHOLD) {
+    return false;
+  }
+  return true;
+}
+
+//return concatenation of all steps at the head of the fifo
+String getPartiallyOptimizedCommand() {
+  String command = fifo.dequeue();
+  for (uint32_t i = 0; i < fifo.length; i++) {
+    String next_command = fifo.readIndex(i);
+    if (!getCommandType(next_command).equals("step")) {
+      return command;
+    }
+    command = combineSteps(command, next_command);
+    fifo.dequeue(); //remove next_command from the fifo since we just read it
+  }
   return command;
 }
 
-
-//TODO - do we need to combine roll pitch yaw speed or wait differently?
-// I am thinking we want this to be part of the position class so we can just add two position types -- reduce clutter in the .ino file
-String combineSteps(String step_1, String step_2) {
-  double x_1 = 0, y_1 = 0, z_1 = 0, roll_1 = 0, pitch_1 = 0, yaw_1= 0, speed_1 = 0;
-  double x_2 = 0, y_2 = 0, z_2 = 0, roll_2 = 0, pitch_2 = 0, yaw_2= 0, speed_2 = 0;
-  bool wait_1 = 0, wait_2 = 0;  
-  x_1 = step_1.substring(step_1.indexOf('X') + 1).toFloat();
-  x_2 = step_2.substring(step_2.indexOf('X') + 1).toFloat();
-  y_1 = step_1.substring(step_1.indexOf('Y') + 1).toFloat();
-  y_2 = step_2.substring(step_2.indexOf('Y') + 2).toFloat();
-  z_1 = step_1.substring(step_1.indexOf('Z') + 1).toFloat();
-  z_2 = step_2.substring(step_2.indexOf('Z') + 2).toFloat();
-  roll_1 = step_1.substring(step_1.indexOf('R') + 1).toFloat();
-  roll_2 = step_2.substring(step_2.indexOf('R') + 2).toFloat();
-  pitch_1 = step_1.substring(step_1.indexOf('P') + 1).toFloat();
-  pitch_2 = step_2.substring(step_2.indexOf('P') + 2).toFloat();
-  yaw_1 = step_1.substring(step_1.indexOf('W') + 1).toFloat();
-  yaw_2 = step_2.substring(step_2.indexOf('W') + 2).toFloat();
-  speed_1 = step_1.substring(step_1.indexOf('S') + 1).toFloat();
-  speed_2 = step_2.substring(step_2.indexOf('S') + 2).toFloat();
-  wait_1 = step_1.substring(step_1.indexOf('H') + 1).toInt();
-  wait_2 = step_2.substring(step_2.indexOf('H') + 2).toInt();
-  String new_step = "G1";
-  double new_x = x_1 + x_2; 
-  double new_y = y_1 + y_2;
-  double new_z = z_1 + z_2;
-  double new_roll = (roll_1 + roll_2) / 2;
-  double new_pitch = (pitch_1 + pitch_2) / 2;
-  double new_yaw = (yaw_1 + yaw_2) / 2;
-  double new_speed = (speed_1 + speed_2) / 2;
-  bool new_wait = wait_1 || wait_2;
-  new_step += " X" + String(new_x) + " Y" + String(new_y) + " Z" + String(new_z) + " R" + String(new_roll) + " P" + String(new_pitch) + " W" + String(new_yaw) + " S" + String(new_speed) + " H" + String(new_wait);
-  return new_step;
+//combine fifo commands to produce a full step
+String getOptimizedCommand() {
+  String command = fifo.dequeue();
+  for (uint32_t i = 0; i < fifo.length; i++){
+    String next_command = fifo.readIndex(i);
+    command = combineSteps(command, next_command);
+    double step_size = hexapod.getDistance(getPosFromCommand(command));
+    if (step_size > STEP_THRESHOLD) {
+      return command;
+    }
+  }
+  //should never be here since we confirmed that we can make a full step outside of this function
+  return command; 
 }
 
-//get a position opbject from the current command string
-Position getPosFromCommand(String command) {
-  Position position;
-  double x = 0, y = 0, z = 0, roll = 0, pitch = 0, yaw= 0;
-  x = command.substring(command.indexOf('X') + 1).toFloat();
-  y = command.substring(command.indexOf('Y') + 1).toFloat();
-  z = command.substring(command.indexOf('Z') + 1).toFloat();
-  roll = command.substring(command.indexOf('R') + 1).toFloat();
-  pitch = command.substring(command.indexOf('P') + 1).toFloat();
-  yaw = command.substring(command.indexOf('W') + 1).toFloat();
-  position.set(x, y, z, roll, pitch, yaw);
-  return position;
+//check the first command in the fifo to see if it needs optimization
+_Bool checkCommand(String command) {
+  String command_type = getCommandType(command);
+  //so far we only optimize step commands
+  if (!command_type.equals("step")) {
+    return false;
+  }
+  else {
+    double step_size = hexapod.getDistance(getPosFromCommand(command));
+    if (step_size > STEP_THRESHOLD) {
+      return false;
+    }
+  }
+  return true;
+}
+
+String combineSteps(String step_1, String step_2) {
+  Position pos_1 = getPosFromCommand(step_1);
+  Position pos_2 = getPosFromCommand(step_2);
+  Position pos_3 = pos_1 + pos_2;
+  float speed_1 = step_1.substring(step_1.indexOf('S') + 1).toFloat();
+  float speed_2 = step_2.substring(step_2.indexOf('S') + 2).toFloat();
+  String new_step = "G1";
+  double new_x = pos_3.X;
+  double new_y = pos_3.Y; 
+  double new_z = pos_3.Z;
+  double new_roll = pos_3.roll;
+  double new_pitch = pos_3.pitch;
+  double new_yaw = pos_3.yaw;
+  double new_speed = min(speed_1, speed_2);
+  bool new_wait = 1;
+  new_step += " X" + String(new_x) + " Y" + String(new_y) + " Z" + String(new_z) + " R" + String(new_roll) + " P" + String(new_pitch) + " W" + String(new_yaw) + " S" + String(new_speed) + " H" + String(new_wait);
+  return new_step;
 }
 
 //check the first index of the command and return a string summarizing the type
 String getCommandType(String command) {
   String ret_val = "unknown";
   splitString(command, ' ', split_command, num_words);
-  if (split_command[0] == "G1") {
+  if (split_command[0].equals("g1")) {
    ret_val = "step"; 
   }
   else if (split_command[0].startsWith('p')) {

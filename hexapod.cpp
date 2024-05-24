@@ -184,9 +184,9 @@ uint8_t Hexapod::inverseKinematics(Position pos) {
 			_next_leg_pos[i][j] = potential_results[i][j];
 			
 		}
-		if (DEBUG) {
-			Serial.printf("Leg %d, x:%lf, y:%lf, z%lf\n",i,_next_leg_pos[i][0], _next_leg_pos[i][1], _next_leg_pos[i][2]);
-		}
+		//if (DEBUG) {
+		//	Serial.printf("Leg %d, x:%lf, y:%lf, z%lf\n",i,_next_leg_pos[i][0], _next_leg_pos[i][1], _next_leg_pos[i][2]);
+		//}
 	}
 	return 0;
 }

@@ -32,14 +32,26 @@ String FIFOCommandQueue::dequeue() {
     }
 }
 
-String FIFOCommandQueue::readNext() {
-  if (head != NULL) {
-      String ret_string = head->command;
-      return ret_string;
-  }
-  else {
+String FIFOCommandQueue::readIndex(int index = 0) {
+  
+  if (head == NULL) {
     return String("");
   }
+
+  Command* current_command = head;
+  int count = 0;
+
+  while (current_command != NULL && count < index) {
+    current_command = current_command->next;
+    count++;
+  }
+  
+  if (current_command == NULL) {
+    return String("");
+  }
+
+  return current_command->command;
+
 }
 
 Command::Command(String str_command) {
@@ -65,5 +77,22 @@ _Bool FIFOCommandQueue::isIdle() {
   } else {
     return false;
   }
+
+}
+
+_Bool FIFOCommandQueue::isGrowTimerActive() {
+
+  if ((millis() - _grow_timer_start) > 20){
+    return false;
+  }
+  else {
+    return true;
+  }
+
+}
+
+void FIFOCommandQueue::startGrowTimer() {
+
+  _grow_timer_start = millis();
 
 }

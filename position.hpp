@@ -1,4 +1,5 @@
 #include <stdbool.h>
+#include <Arduino.h>
 
 #ifndef HEXA_POSITION
 #define HEXA_POSITION
@@ -28,5 +29,6 @@
 			double magnitude();
 		private:
 	};
+  Position getPosFromCommand(String command);
 
 #endif

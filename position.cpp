@@ -1,5 +1,6 @@
 #include "position.hpp"
 #include <stdbool.h>
+#include <Arduino.h>
 #include <math.h>
 
 
@@ -107,4 +108,18 @@ _Bool Position::equals(const Position& pos) {
     if (fabs(yaw - pos.yaw) > .003)
         return false;
     return true;
+}
+
+//get a position opbject from a command string
+Position getPosFromCommand(String command) {
+  Position position;
+  double x = 0, y = 0, z = 0, roll = 0, pitch = 0, yaw= 0;
+  x = command.substring(command.indexOf('X') + 1).toFloat();
+  y = command.substring(command.indexOf('Y') + 1).toFloat();
+  z = command.substring(command.indexOf('Z') + 1).toFloat();
+  roll = command.substring(command.indexOf('R') + 1).toFloat();
+  pitch = command.substring(command.indexOf('P') + 1).toFloat();
+  yaw = command.substring(command.indexOf('W') + 1).toFloat();
+  position.set(x, y, z, roll, pitch, yaw);
+  return position;
 }
