@@ -237,7 +237,8 @@ uint8_t Hexapod::stepSetup(ThreeByOne relative_end_coord, double speed) {
 	ThreeByOne current_coord = _current_pos.coord();
 	uint8_t num_step_segments = 5;
 	double step_z_offsets[num_step_segments] = {-20.0, -10.0, 0.0, 10.0, 20.0};
-	ThreeByOne step_segment[num_step_segments] = ThreeByOne(0.0, 0.0, 0.0);
+	ThreeByOne step_segment[num_step_segments];// = {	ThreeByOne(0.0, 0.0, 0.0), ThreeByOne(0.0, 0.0, 0.0), ThreeByOne(0.0, 0.0, 0.0),
+												//	ThreeByOne(0.0, 0.0, 0.0), ThreeByOne(0.0, 0.0, 0.0);
 	double step_path_length = 0.0;
 	for (uint8_t i = 0; i < num_step_segments; i++) {
 		step_segment[i] = relative_end_coord / double(num_step_segments);

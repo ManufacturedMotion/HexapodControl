@@ -74,6 +74,12 @@ void ThreeByThree::invert() {
     }
 }
 
+ThreeByOne::ThreeByOne() {
+    values[0] = 0.0;
+    values[1] = 0.0;
+    values[2] = 0.0;
+}
+
 ThreeByOne::ThreeByOne(double value0, double value1, double value2) {
     values[0] = value0;
     values[1] = value1;

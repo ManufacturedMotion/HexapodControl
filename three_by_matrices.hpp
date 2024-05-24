@@ -15,6 +15,7 @@ class ThreeByThree {
 
 class ThreeByOne {
     public:
+        ThreeByOne();
         ThreeByOne(double value0, double value1, double value2);
         ThreeByOne(double values[3]);
         ThreeByOne(const ThreeByOne& orig);
