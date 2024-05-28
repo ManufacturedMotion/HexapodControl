@@ -22,6 +22,7 @@
 			_Bool linearMoveSetup(double x,  double y, double z, double target_speed, _Bool relative = false);
 			uint8_t linearMovePerform();
 			_Bool isMoving();
+			void wait(uint32_t time_ms);
 
 		private:
 			uint8_t _leg_number;

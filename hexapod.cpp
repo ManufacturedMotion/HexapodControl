@@ -210,7 +210,7 @@ uint8_t Hexapod::walkSetup(ThreeByOne relative_end_coord, double speed) {
 		ThreeByOne max_step_size = end_unit_vector * get_max_step_magnitude();
 		ThreeByOne distance_to_go = relative_end_coord - distance_traveled;
 		ThreeByOne this_step = (distance_to_go > max_step_size) ? ThreeByOne(max_step_size) : ThreeByOne(distance_to_go);
-		Serial.printf("Taking step: x:%f, y:%f, z:%f\n", this_step.values[0], this_step.values[1], this_step.values[2]);
+		// Serial.printf("Taking step: x:%f, y:%f, z:%f\n", this_step.values[0], this_step.values[1], this_step.values[2]);
 		stepSetup(this_step, speed);
 		distance_traveled += this_step;
 		counter++;
@@ -218,11 +218,9 @@ uint8_t Hexapod::walkSetup(ThreeByOne relative_end_coord, double speed) {
 }
 
 uint8_t Hexapod::stepToNeutral(double speed) {
-	return 0;
-}
-
-uint8_t Hexapod::firstStepSetup(ThreeByOne relative_end_coord, double speed) {
-	return 0;
+	for (uint8_t i = 0; i < NUM_STEP_GROUPS; i++) {
+		// three legs wait, other three move by _current_step_permutation
+	}
 }
 
 uint8_t Hexapod::stepSetup(double x, double y, double z, double speed) {
@@ -265,6 +263,14 @@ uint8_t Hexapod::stepSetup(ThreeByOne relative_end_coord, double speed) {
 	return 0;
 }
 
+uint8_t Hexapod::legWaitSetup(uint8_t leg, uint32_t wait_time) {
+	if (wait_time) {
+		legs[leg].wait(wait_time);
+		return 255;
+	}
+	return 0;
+}
+
 uint16_t Hexapod::comboMovePerform() {
 	// Return code is two 8 bit numbers
 	// 8 grand bits are number of legs that got new end positions
@@ -276,7 +282,9 @@ uint16_t Hexapod::comboMovePerform() {
 		}
 		else {
 			if (!_leg_queues[i].isEmpty()) {
-				legLinearMoveSetup(i+1, _leg_queues[i].head->end_pos, _leg_queues[i].head->speed, _leg_queues[i].head->relative);
+				Operation * queue_head = _leg_queues.head;
+				legWaitSetup(i, queue_head->wait_time);
+				legLinearMoveSetup(i+1, queue_head->end_pos, queue_head->speed, queue_head->relative);
 				if (DEBUG) {
 					Serial.printf("Leg %d moving to x:%f y:%f z:%f\nRelative:%d speed:%f\n",
 					i+1, _leg_queues[i].head->end_pos.values[0],

@@ -112,6 +112,21 @@ uint8_t Leg::linearMovePerform() {
     return 0;
 }
 
+void Leg::wait(uint32_t time_ms) {
+    uint8_t retval = 0;
+    
+    for (uint8_t i = 0; i < NUM_AXES_PER_LEG; i++) {
+        _start_cartesian[i] = _current_cartesian[i];
+        _end_cartesian[i] = _current_cartesian[i];
+    }
+    _move_progress = 0;
+    _move_start_time = millis();
+    _moving_flag = true;
+    _move_time = time_ms;
+    // Serial.printf("_end_cartesian: x:%f, y:%f, z:%f\n", _end_cartesian[0], _end_cartesian[1], _end_cartesian[2]);
+    return retval;
+}
+
 
 // double Leg::linearMovement(double move_progress, Dimension axis) {
 //     return move_progress * (_end_cartesian[axis] - _start_cartesian[axis]) + _start_cartesian[axis];
