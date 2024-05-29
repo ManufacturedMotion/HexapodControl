@@ -1,7 +1,7 @@
 #include <stdbool.h>
 #include "operation_queue.hpp"
 
-void OperationQueue::enqueue(ThreeByOne op_end_pos, double op_speed, _Bool op_relative, uint32_t op_wait_time_ms = 0) {
+void OperationQueue::enqueue(ThreeByOne op_end_pos, double op_speed, _Bool op_relative, uint32_t op_wait_time_ms) {
 	Operation* new_operation = new Operation(op_end_pos, op_speed, op_relative, op_wait_time_ms);
 	if (head == NULL) {
         head = new_operation;

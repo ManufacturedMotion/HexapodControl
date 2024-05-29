@@ -224,3 +224,8 @@ void ThreeByOne::floorDivide(double divisor) {
     values[1] = floor(values[0] / divisor);
     values[2] = floor(values[0] / divisor);
 }
+
+ThreeByOne ThreeByOne::unit_vector() {
+    ThreeByOne result = ThreeByOne(values[0], values[1], values[2]);
+    return result / result.magnitude()
+}

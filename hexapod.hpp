@@ -13,6 +13,7 @@
 	#define NUM_LEGS 6
 	#define NUM_STEP_GROUPS 2
 	#define MAX_STEP_MAGNITUDE 40.0
+	#define STEP_TO_NEUTRAL_SPEED 200.0
 	class Hexapod {
 		public:
 			Hexapod();
@@ -21,6 +22,7 @@
 			void moveToZeros();
 			void sit();
 			void stand();
+			void wait(uitn32_t time_ms);
 			Leg legs[NUM_LEGS];
 			void forwardKinematics(double angle0, double angle1, double angle2);
 			void rapidMove(double x, double y, double z, double roll, double pitch, double yaw);
@@ -46,7 +48,7 @@
 			void opQueueTest();
 			double get_max_step_magnitude();
 			uint8_t legWaitSetup(uint8_t leg, uint32_t wait_time);
-
+			void returnToNeutral();
 		private:
 			uint8_t _step_groups[NUM_STEP_GROUPS][NUM_LEGS / 2] = {{1,3,5}, {2,4,6}}; // Divide legs into two self-stable groups
 			uint8_t _next_step_group = 0;
@@ -69,12 +71,15 @@
 			uint32_t _move_start_time;
 			_Bool _moving_flag = false;
 			_Bool _high_level_move_flag = false;
+			_Bool _return_to_neutral_flag = false;
+			_Bool _neutral_position_flag = false;
 			Position _end_pos;
 			Position _start_pos;
 			Position _current_pos;
 			double _move_time;
 			OperationQueue _leg_queues[NUM_LEGS];
 			ThreeByOne _current_step_permutation[NUM_STEP_GROUPS];
+
 			
 	};
 

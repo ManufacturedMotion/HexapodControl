@@ -37,7 +37,6 @@
 			double _next_cartesian[NUM_AXES_PER_LEG];
 			double _start_cartesian[NUM_AXES_PER_LEG];
 			double _end_cartesian[NUM_AXES_PER_LEG];
-			double _move_progress;
 			uint32_t _move_start_time; 
 			double _max_speed = 1000000.0;
 			uint32_t _move_time;

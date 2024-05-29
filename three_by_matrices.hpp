@@ -37,6 +37,7 @@ class ThreeByOne {
         ThreeByOne operator-(const ThreeByOne& subtrahend);
         _Bool operator>(const ThreeByOne& right);
         _Bool operator<(const ThreeByOne& right);
+        ThreeByOne unit_vector();
         void floorDivide(double divisor);
     private:
 };
