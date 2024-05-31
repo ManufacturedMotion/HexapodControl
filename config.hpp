@@ -1,12 +1,9 @@
 #include "axis.hpp"
 #include <stdbool.h>
+#include "user_config.hpp"
 
 #ifndef HEXA_CONFIG
 #define HEXA_CONFIG
-
-	#define DEBUG true
-	#define DUMMY_USER
-
 	
 	#ifdef DANNY	
 		#define PWM_PINS {{5, 6, 7}, {2, 3, 4}, {8, 9, 10},  {11, 12, 13}, {14, 15, 18}, {19, 22, 23}}
