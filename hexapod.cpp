@@ -215,6 +215,8 @@ uint8_t Hexapod::walkSetup(ThreeByOne relative_end_coord, double speed) {
 		distance_traveled += this_step;
 		counter++;
 	}
+
+	return 0;
 }
 
 uint8_t Hexapod::stepToNeutral(double speed) {
@@ -313,6 +315,8 @@ uint8_t Hexapod::inverseKinematics(Position pos) {
 		active_legs[i] = true;
 	} 
 	inverseKinematics(pos, active_legs);
+
+	return 0;
 }
 
 uint8_t Hexapod::inverseKinematics(Position pos, _Bool active_legs[NUM_LEGS]) {
