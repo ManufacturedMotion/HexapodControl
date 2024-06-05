@@ -1,4 +1,5 @@
 #include <stdbool.h>
+#include <Arduino.h>
 #include "three_by_matrices.hpp"
 
 #ifndef HEXA_POSITION
@@ -30,5 +31,6 @@
 			double magnitude();
 		private:
 	};
+  Position getPosFromCommand(String command);
 
 #endif
