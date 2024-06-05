@@ -8,7 +8,7 @@ In May of 2023 we set out to design a Hexapod (6 legged robot) which would prima
 
 We're still in the early stages of this project, as development is slowed down by geographical distance and full time jobs. But we'll get there eventually (and hopefully not too much over budget).
 
-Who are we?
+Who are we??
 
 - [Danny Iacobacci](https://www.linkedin.com/in/diacobacci/)
 - [Zack Schwid](https://www.linkedin.com/in/zacharyschwid/)
