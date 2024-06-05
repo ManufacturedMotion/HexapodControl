@@ -48,6 +48,8 @@ void loop() {
 
   if (!command_queue.isEmpty()) {
 
+    //TODO - need to find fix for hexapod.isBusy() - seems to get stuck at 1
+  
     if (hexapod.isBusy() || wait) {
 
     } else {
@@ -285,10 +287,11 @@ String combineSteps(String step_1, String step_2) {
 String getCommandType(String command) {
   String ret_val = "unknown";
   splitString(command, ' ', split_command, num_words);
-  if (split_command[0].equals("g1")) {
+  //TODO - ask Zack - do we only optimize G1 since this is walking or are we optimizing all gcode formatted?
+  if (split_command[0].toLowerCase().equals("g1")) {
    ret_val = "step"; 
   }
-  else if (split_command[0].startsWith('p')) {
+  else if (split_command[0].toLowerCase().startsWith('p')) {
    ret_val = "preset";
   }
   return ret_val;
