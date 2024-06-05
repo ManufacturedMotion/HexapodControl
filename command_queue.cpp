@@ -1,9 +1,9 @@
 #include <stdbool.h>
 #include <Arduino.h>
-#include "FIFOCommandQueue.hpp"
+#include "commandQueue.hpp"
 #include "config.hpp"
 
-void FIFOCommandQueue::enqueue(String str_command) {
+void commandQueue::enqueue(String str_command) {
 	Command* new_command = new Command(str_command);
 	if (head == NULL) {
         head = new_command;
@@ -18,7 +18,7 @@ void FIFOCommandQueue::enqueue(String str_command) {
   _last_enqueue_timestamp = millis();
 }
 
-String FIFOCommandQueue::dequeue() {
+String commandQueue::dequeue() {
 	if (head != NULL) {
         String ret_string = head->command;
         Command* temp = head;
@@ -32,7 +32,7 @@ String FIFOCommandQueue::dequeue() {
     }
 }
 
-String FIFOCommandQueue::readIndex(int index = 0) {
+String commandQueue::readIndex(int index = 0) {
   
   if (head == NULL) {
     return String("");
@@ -58,11 +58,11 @@ Command::Command(String str_command) {
     command = str_command;
 }
 
-_Bool FIFOCommandQueue::isEmpty(){
+_Bool commandQueue::isEmpty(){
 	return head == NULL;
 }
 
-FIFOCommandQueue::FIFOCommandQueue() {
+commandQueue::commandQueue() {
 
 	head = NULL;
 	tail = NULL;
@@ -70,7 +70,7 @@ FIFOCommandQueue::FIFOCommandQueue() {
 
 }
 
-_Bool FIFOCommandQueue::isIdle() {
+_Bool commandQueue::isIdle() {
 
   if ((millis() - _last_enqueue_timestamp) > FIFO_IDLE_THRESHOLD) { 
     return true;
@@ -80,7 +80,7 @@ _Bool FIFOCommandQueue::isIdle() {
 
 }
 
-_Bool FIFOCommandQueue::isGrowTimerActive() {
+_Bool commandQueue::isGrowTimerActive() {
 
   if ((millis() - _grow_timer_start) > 20){
     return false;
@@ -91,7 +91,7 @@ _Bool FIFOCommandQueue::isGrowTimerActive() {
 
 }
 
-void FIFOCommandQueue::startGrowTimer() {
+void commandQueue::startGrowTimer() {
 
   _grow_timer_start = millis();
 

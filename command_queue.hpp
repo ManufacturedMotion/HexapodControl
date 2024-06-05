@@ -13,9 +13,9 @@ class Command {
     private:
 };
 
-class FIFOCommandQueue {
+class commandQueue {
     public:
-      FIFOCommandQueue();
+      commandQueue();
 		  Command * head;
       Command * tail;
       void enqueue(String str_command);
