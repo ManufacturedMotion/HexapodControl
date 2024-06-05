@@ -5,8 +5,7 @@
 #include <stdbool.h>
 Hexapod hexapod;
 
-_Bool checkCommand(String command);
-_Bool canCommandQueueOptimize();
+_Bool commandQueueNeedsExpansion();
 
 #if DEBUG
 #define SERIAL_OUTPUT Serial
@@ -57,25 +56,29 @@ void loop() {
 
       //if we are letting the command_queue grow we do not want to execute any commands
       if (!command_queue.isIdleTimer()){
-        need_optimize = checkCommand(command_queue.readIndex(0));
+        //if the first command is a step we should try to optimize the command queue
+        if (getCommandType(command_queue.readIndex(0)).equals("step")){
+          need_optimize = true;
+        }
         if (!need_optimize) {
           SERIAL_OUTPUT.print("No optimization needed, executing command as is\n");
           current_command = command_queue.dequeue();
           executeCommand(current_command);
         }
-        else {          
-          expand_queue_flag = !canCommandQueueOptimize();
+        else {         
+          //if the command queue could not optimize we check to see if we tried letting the command queue grow 
+          expand_queue_flag = commandQueueNeedsExpansion();
           //if we havent let the command_queue grow give it some time
           if (expand_queue_flag and !started_idle_timer){
             SERIAL_OUTPUT.print("command_queue is too short / could not make full step. letting the command_queue grow\n");
             command_queue.resetIdleTimer();
             started_idle_timer = true;
           }
-          //if we let the command_queue grow and the command is still bad we have to execute it anyways
+          //if we let the command_queue grow and the combined step is still too small we have to execute it anyways, afterwards we should return to idle to make sure the hexapod is in a stable position
           else if (expand_queue_flag and started_idle_timer){ 
             SERIAL_OUTPUT.print("command_queue growing complete - still cannot make a full step. Getting partial command\n");
-            current_command = getPartiallyOptimizedCommand();
-            SERIAL_OUTPUT.print("partial command: " + current_command + ".\n");
+            current_command = getOptimizedCommand();
+            SERIAL_OUTPUT.print("partial step formed: " + current_command + ".\n");
             executeCommand(current_command);
             started_idle_timer = false; 
             //TODO - call Zacks return to idle move function 
@@ -84,7 +87,7 @@ void loop() {
           else {
             SERIAL_OUTPUT.print("command_queue growing complete - full command could be made\n");
             current_command = getOptimizedCommand();
-            SERIAL_OUTPUT.print("full command: " + current_command + ".\n");
+            SERIAL_OUTPUT.print("full step formed: " + current_command + ".\n");
             executeCommand(current_command);
             started_idle_timer = false;
           }
@@ -220,16 +223,12 @@ void executeCommand(String command) {
 }
 
 
-//check if we can make a full step with the commands at the top of the command_queue
-_Bool canCommandQueueOptimize() {
-  //cant optimize if we only have one step
-  if (command_queue.length < 2) {
-    return false;
-  }
+//check if we can make a full step with the commands at the top of the command_queue. If we do not change command types and can not make a full step we need to try letting the command queue grow
+_Bool commandQueueNeedsExpansion() {
   Position position = getPosFromCommand(command_queue.readIndex(0));
   double step_size = hexapod.getDistance(position);
   for (uint32_t i = 1; i < command_queue.length; i++){
-      //if we hit a command that is not a step we stop the optimization. if current concatenation of steps is still too small we have to partially optimize
+      //if we hit a command that is not a step we stop the optimization. We do not need to wait for the queue to expand
       if ((step_size < STEP_THRESHOLD) and (!getCommandType(command_queue.readIndex(i)).equals("step"))){
         return false;
       }
@@ -237,74 +236,41 @@ _Bool canCommandQueueOptimize() {
       position = position + next_position;
       step_size = hexapod.getDistance(position);
   } 
-  //if all of the commands in the command_queue were steps but we are still below the threshold we will only be able to partially optimize
+  //if all of the commands in the command_queue were steps but we are still below the threshold we need to let the queue expand
   if (step_size < STEP_THRESHOLD) {
-    return false;
+    return true;
   }
-  return true;
+  //otherwise we would be able to make a full step; we do not need to idle
+  return false;
 }
 
-//return concatenation of all steps at the head of the command_queue
-String getPartiallyOptimizedCommand() {
-  String command = command_queue.dequeue();
-  for (uint32_t i = 0; i < command_queue.length; i++) {
-    String next_command = command_queue.readIndex(i);
-    if (!getCommandType(next_command).equals("step")) {
-      return command;
-    }
-    command = combineSteps(command, next_command);
-    command_queue.dequeue(); //remove next_command from the command_queue since we just read it
-  }
-  return command;
-}
-
-//combine command_queue commands to produce a full step
+//combine command_queue commands to produce either a full step or as large of a step as we can
 String getOptimizedCommand() {
   String command = command_queue.dequeue();
   for (uint32_t i = 0; i < command_queue.length; i++){
     String next_command = command_queue.readIndex(i);
+    //if we see the next command is not a step, return what we currently optimized to
+    if (!getCommandType(next_command).equals("step")) {
+      return command;
+    }
+    //otherwise we can add the steps and see if we have made a full step. If so we can return the optimized command early
     command = combineSteps(command, next_command);
     double step_size = hexapod.getDistance(getPosFromCommand(command));
     if (step_size > STEP_THRESHOLD) {
       return command;
     }
   }
-  //should never be here since we confirmed that we can make a full step outside of this function
+  //if we get here that means we combined all fifo steps but could not meet the step threshold. This command will be executed and the hexapod will return to an idle resting position
   return command; 
 }
 
-//check the first command in the command_queue to see if it needs optimization
-_Bool checkCommand(String command) {
-  String command_type = getCommandType(command);
-  //so far we only optimize step commands
-  if (!command_type.equals("step")) {
-    return false;
-  }
-  else {
-    double step_size = hexapod.getDistance(getPosFromCommand(command));
-    if (step_size > STEP_THRESHOLD) {
-      return false;
-    }
-  }
-  return true;
-}
-
 String combineSteps(String step_1, String step_2) {
-  Position pos_1 = getPosFromCommand(step_1);
-  Position pos_2 = getPosFromCommand(step_2);
-  Position pos_3 = pos_1 + pos_2;
+  Position new_pos = getPosFromCommand(step_1) + getPosFromCommand(step_2);
   float speed_1 = step_1.substring(step_1.indexOf('S') + 1).toFloat();
   float speed_2 = step_2.substring(step_2.indexOf('S') + 2).toFloat();
-  String new_step = "G1";
-  double new_x = pos_3.X;
-  double new_y = pos_3.Y; 
-  double new_z = pos_3.Z;
-  double new_roll = pos_3.roll;
-  double new_pitch = pos_3.pitch;
-  double new_yaw = pos_3.yaw;
   double new_speed = min(speed_1, speed_2);
   bool new_wait = 1;
-  new_step += " X" + String(new_x) + " Y" + String(new_y) + " Z" + String(new_z) + " R" + String(new_roll) + " P" + String(new_pitch) + " W" + String(new_yaw) + " S" + String(new_speed) + " H" + String(new_wait);
+  String new_step = "G1 X" + String(new_pos.X) + " Y" + String(new_pos.Y) + " Z" + String(new_pos.Z) + " R" + String(new_pos.roll) + " P" + String(new_pos.pitch) + " W" + String(new_pos.yaw) + " S" + String(new_speed) + " H" + String(new_wait);
   return new_step;
 }
 
