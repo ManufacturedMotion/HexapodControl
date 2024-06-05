@@ -7,19 +7,17 @@
 #ifndef OPERATION_QUEUE
 #define OPERATION_QUEUE
 
-class LinearMovementOperation {
+class MovementOperation {
     public:
         double speed;
         ThreeByOne end_pos;
         _Bool relative;
-}
+};
 
 class Wait {
     public:
     uint32_t wait_time_ms;
-}
-
-class 
+};
 
 class Operation {
     public:

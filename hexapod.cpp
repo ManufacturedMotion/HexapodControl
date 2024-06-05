@@ -197,9 +197,9 @@ double Hexapod::get_max_step_magnitude() {
 	return _current_step_permutation[_next_step_group % 2].magnitude() + MAX_STEP_MAGNITUDE;
 }
 
-ThreeByOne Hexapod::get_max_step(ThreeByOne direction) {
-	return direction.unit_vector() * _current_step_permutation[_next_step_group % 2]
-}
+// ThreeByOne Hexapod::get_max_step(ThreeByOne direction) {
+// 	return _current_step_permutation[_next_step_group % 2] * direction.unit_vector();
+// }
 
 uint8_t Hexapod::walkSetup(ThreeByOne relative_end_coord, double speed) {
 	ThreeByOne end_unit_vector = relative_end_coord / relative_end_coord.magnitude();
@@ -218,7 +218,7 @@ uint8_t Hexapod::walkSetup(ThreeByOne relative_end_coord, double speed) {
 }
 
 void Hexapod::wait(uint32_t time_ms) {
-	for (uint8_t i = 0; i++; i < NUM_LEGS) {
+	for (uint8_t i = 0; i < NUM_LEGS; i++) {
 		legs[i].wait(time_ms);
 	} 
 }

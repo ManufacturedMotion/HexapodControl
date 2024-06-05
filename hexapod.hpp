@@ -22,7 +22,7 @@
 			void moveToZeros();
 			void sit();
 			void stand();
-			void wait(uitn32_t time_ms);
+			void wait(uint32_t time_ms);
 			Leg legs[NUM_LEGS];
 			void forwardKinematics(double angle0, double angle1, double angle2);
 			void rapidMove(double x, double y, double z, double roll, double pitch, double yaw);
@@ -49,6 +49,7 @@
 			double get_max_step_magnitude();
 			uint8_t legWaitSetup(uint8_t leg, uint32_t wait_time);
 			void returnToNeutral();
+			ThreeByOne get_max_step(ThreeByOne);
 		private:
 			uint8_t _step_groups[NUM_STEP_GROUPS][NUM_LEGS / 2] = {{1,3,5}, {2,4,6}}; // Divide legs into two self-stable groups
 			uint8_t _next_step_group = 0;
