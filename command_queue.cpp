@@ -1,6 +1,6 @@
 #include <stdbool.h>
 #include <Arduino.h>
-#include "commandQueue.hpp"
+#include "command_queue.hpp"
 #include "config.hpp"
 
 void commandQueue::enqueue(String str_command) {
