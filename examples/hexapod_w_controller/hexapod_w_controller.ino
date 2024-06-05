@@ -60,6 +60,9 @@ void loop() {
         if (getCommandType(command_queue.readIndex(0)).equals("step")){
           need_optimize = true;
         }
+        else {
+          need_optimize = false;
+        }
         if (!need_optimize) {
           SERIAL_OUTPUT.print("No optimization needed, executing command as is\n");
           current_command = command_queue.dequeue();
