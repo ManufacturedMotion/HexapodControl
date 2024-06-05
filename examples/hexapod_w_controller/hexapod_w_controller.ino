@@ -250,14 +250,18 @@ _Bool commandQueueNeedsExpansion() {
 //combine command_queue commands to produce either a full step or as large of a step as we can
 String getOptimizedCommand() {
   String command = command_queue.dequeue();
-  for (uint32_t i = 0; i < command_queue.length; i++){
-    String next_command = command_queue.readIndex(i);
+  //pop the first command. The next command is now at index 0, we need to read this before entering the loop
+  String next_command = command_queue.readIndex(0);
+  //save command queue length external to loop -- we cannot do this in the loop because the popping will change the loop size 
+  uint32_t command_queue_length = command_queue.length;
+  for (uint32_t i = 0; i < command_queue_length; i++){
     //if we see the next command is not a step, return what we currently optimized to
     if (!getCommandType(next_command).equals("step")) {
       return command;
     }
     //otherwise we can add the steps and see if we have made a full step. If so we can return the optimized command early
     command = combineSteps(command, next_command);
+    next_command = command_queue.dequeue();
     double step_size = hexapod.getDistance(getPosFromCommand(command));
     if (step_size > STEP_THRESHOLD) {
       return command;
