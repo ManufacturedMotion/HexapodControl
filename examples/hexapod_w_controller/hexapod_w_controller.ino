@@ -172,7 +172,7 @@ void executeCommand(String command) {
   //G-code commands
   if (split_command[0].startsWith('g')) {
     splitString(split_command[0], 'G', buffer, num_words);
-    if (!buffer[1].equals("0") and !buffer[1].equals("1")) {
+    if (!buffer[1].equals("0") and !buffer[1].equals("1") and !buffer[1].equals("9")) {
       SERIAL_OUTPUT.printf("Error: only G0 and G1 implemented.\n");
     } else {
       String current_command_substring;
@@ -191,14 +191,21 @@ void executeCommand(String command) {
           updateVariables(current_command_substring);
           position.set(x, y, z, roll, pitch, yaw);
         }
-        SERIAL_OUTPUT.printf("linear move parsing success; x, y, z is %f, %f, %f\n roll, pitch, yaw, speed are %f, %f, %f, %f.\n", x, y, z, roll, pitch, yaw, speed);
+        SERIAL_OUTPUT.printf("walk setup parsing success; x, y, z is %f, %f, %f\n roll, pitch, yaw, speed are %f, %f, %f, %f.\n", x, y, z, roll, pitch, yaw, speed);
+        hexapod.walkSetup(position, speed);
+      }
+      else if (buffer[1].equals("9")) {
+        for (uint8_t i = 0; i < cmd_line_word_count; i++) {
+          current_command_substring = split_command[i];
+          updateVariables(current_command_substring);
+          position.set(x, y, z, roll, pitch, yaw);                                                                                                                  }                                                                                                                                                           SERIAL_OUTPUT.printf("linear move parsing success; x, y, z is %f, %f, %f\n roll, pitch, yaw, speed are %f, %f, %f, %f.\n", x, y, z, roll, pitch, yaw, speed);
         hexapod.linearMoveSetup(position, speed);
       }
     }
   }
   else if (split_command[0].startsWith('p')) {
     splitString(split_command[0], 'P', buffer, num_words);
-    if (buffer[1] == '0') {
+    if (buffer[1].equals("0")) {
       SERIAL_OUTPUT.printf("parsing success; starfish preset selected (move all motors to zero).\n");
       hexapod.moveToZeros();
       return;
