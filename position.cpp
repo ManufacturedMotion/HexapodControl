@@ -2,6 +2,7 @@
 #include <stdbool.h>
 #include <Arduino.h>
 #include <math.h>
+#include "three_by_matrices.hpp"
 
 
 void Position::set(double new_X, double new_Y, double new_Z, double new_roll, double new_pitch, double new_yaw) {
@@ -122,4 +123,8 @@ Position getPosFromCommand(String command) {
   yaw = command.substring(command.indexOf('W') + 1).toFloat();
   position.set(x, y, z, roll, pitch, yaw);
   return position;
+}
+
+ThreeByOne Position::coord() {
+    return ThreeByOne(X, Y, Z);
 }

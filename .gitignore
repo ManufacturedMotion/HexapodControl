@@ -1,0 +1,2 @@
+#Ignore the config file to not overwrite Hexapod configuration
+user_config.hpp

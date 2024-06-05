@@ -1,5 +1,6 @@
 #include <stdbool.h>
 #include <Arduino.h>
+#include "three_by_matrices.hpp"
 
 #ifndef HEXA_POSITION
 #define HEXA_POSITION
@@ -26,6 +27,7 @@
 			void  operator+=(const Position& pos);
 			Position operator-(const Position& pos);
 			void operator-=(const Position& pos);
+			ThreeByOne coord();
 			double magnitude();
 		private:
 	};

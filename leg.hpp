@@ -1,6 +1,6 @@
 #include "axis.hpp"
 #include "config.hpp"
-#include "threebythree.hpp"
+#include "three_by_matrices.hpp"
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -14,13 +14,12 @@
 			Leg();
 			void initializeAxes(uint8_t leg_number);
 			double current_angles[NUM_AXES_PER_LEG];
-			double current_cartesian[NUM_AXES_PER_LEG];
 			_Bool rapidMove(double x,  double y, double z);
 			_Bool linearMove(double x,  double y, double z, double speed);
 			Axis axes[NUM_AXES_PER_LEG];
 			ThreeByOne forwardKinematics(double axis0_angle, double axis1_angle, double axis2_angle);
 			uint8_t runLegSpeed(void* (*)(double));
-			_Bool linearMoveSetup(double x,  double y, double z, double target_speed);
+			_Bool linearMoveSetup(double x,  double y, double z, double target_speed, _Bool relative = false);
 			uint8_t linearMovePerform();
 			_Bool isMoving();
 
