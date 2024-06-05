@@ -80,9 +80,9 @@ _Bool commandQueue::isIdle() {
 
 }
 
-_Bool commandQueue::isGrowTimerActive() {
+_Bool commandQueue::isIdleTimer() {
 
-  if ((millis() - _grow_timer_start) > 20){
+  if ((millis() - _expand_timer_start) > 20){
     return false;
   }
   else {
@@ -91,8 +91,8 @@ _Bool commandQueue::isGrowTimerActive() {
 
 }
 
-void commandQueue::startGrowTimer() {
+void commandQueue::resetIdleTimer() {
 
-  _grow_timer_start = millis();
+  _expand_timer_start = millis();
 
 }

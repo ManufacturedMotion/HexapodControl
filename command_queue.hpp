@@ -24,11 +24,11 @@ class commandQueue {
 		  _Bool isEmpty();
       _Bool isIdle();
 		  uint32_t length = 0;
-      _Bool isGrowTimerActive();
-      void startGrowTimer(); 
+      _Bool isIdleTimer();
+      void resetIdleTimer();
     private:
       uint64_t _last_enqueue_timestamp = 0;
-	    uint64_t _grow_timer_start = 0;	
+	    uint64_t _expand_timer_start = 0;	
 };
 
 #endif

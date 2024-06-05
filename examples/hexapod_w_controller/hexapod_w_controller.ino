@@ -6,7 +6,7 @@
 Hexapod hexapod;
 
 _Bool checkCommand(String command);
-_Bool canFifoOptimize();
+_Bool canCommandQueueOptimize();
 
 #if DEBUG
 #define SERIAL_OUTPUT Serial
@@ -22,7 +22,7 @@ double x = 0, y = 0, z = 200, roll = 0, pitch = 0, yaw = 0, speed = 100;
 bool wait = false;
 
 Position position;
-FIFOCommandQueue fifo;
+commandQueue command_queue;
 
 void setup() {
   Serial.begin(115200);
@@ -34,8 +34,8 @@ void loop() {
   String command = "";
   String current_command = "";
   _Bool need_optimize = false;
-  static _Bool need_to_grow = false;
-  static _Bool called_start_grow_timer = false;
+  static _Bool expand_queue_flag = false;
+  static _Bool started_idle_timer = false;
   
   if (Serial.available() > 0 || Serial4.available() > 0) {
     if (Serial4.available() > 0) {
@@ -44,49 +44,49 @@ void loop() {
       command = Serial.readStringUntil('\n');
     }
     SERIAL_OUTPUT.print("Teensy Received: " + command + ".\n");
-    fifo.enqueue(command);
+    command_queue.enqueue(command);
   }
 
-  if (!fifo.isEmpty()) {
+  if (!command_queue.isEmpty()) {
 
     if (hexapod.isBusy() || wait) {
 
     } else {
-      //set wait to default of fasle & get the command from the fifo after checking for optimizations
+      //set wait to default of false & get the command from the command_queue after checking for optimizations
       wait = false;
 
-      //if we are letting the fifo grow we do not want to execute any commands
-      if (!fifo.isGrowTimerActive()){
-        need_optimize = checkCommand(fifo.readIndex(0));
+      //if we are letting the command_queue grow we do not want to execute any commands
+      if (!command_queue.isIdleTimer()){
+        need_optimize = checkCommand(command_queue.readIndex(0));
         if (!need_optimize) {
           SERIAL_OUTPUT.print("No optimization needed, executing command as is\n");
-          current_command = fifo.dequeue();
+          current_command = command_queue.dequeue();
           executeCommand(current_command);
         }
         else {          
-          need_to_grow = !canFifoOptimize();
-          //if we havent let the fifo grow give it some time
-          if (need_to_grow and !called_start_grow_timer){
-            SERIAL_OUTPUT.print("fifo is too short / could not make full step. letting the fifo grow\n");
-            fifo.startGrowTimer();
-            called_start_grow_timer = true;
+          expand_queue_flag = !canCommandQueueOptimize();
+          //if we havent let the command_queue grow give it some time
+          if (expand_queue_flag and !started_idle_timer){
+            SERIAL_OUTPUT.print("command_queue is too short / could not make full step. letting the command_queue grow\n");
+            command_queue.resetIdleTimer();
+            started_idle_timer = true;
           }
-          //if we let the fifo grow and the command is still bad we have to execute it anyways
-          else if (need_to_grow and called_start_grow_timer){ 
-            SERIAL_OUTPUT.print("fifo growing complete - still cannot make a full step. Getting partial command\n");
+          //if we let the command_queue grow and the command is still bad we have to execute it anyways
+          else if (expand_queue_flag and started_idle_timer){ 
+            SERIAL_OUTPUT.print("command_queue growing complete - still cannot make a full step. Getting partial command\n");
             current_command = getPartiallyOptimizedCommand();
             SERIAL_OUTPUT.print("partial command: " + current_command + ".\n");
             executeCommand(current_command);
-            called_start_grow_timer = false; 
+            started_idle_timer = false; 
             //TODO - call Zacks return to idle move function 
           }
-          //otherwise we have a set of commands in the fifo that now combine to meet our step threshold
+          //otherwise we have a set of commands in the command_queue that now combine to meet our step threshold
           else {
-            SERIAL_OUTPUT.print("fifo growing complete - full command could be made\n");
+            SERIAL_OUTPUT.print("command_queue growing complete - full command could be made\n");
             current_command = getOptimizedCommand();
             SERIAL_OUTPUT.print("full command: " + current_command + ".\n");
             executeCommand(current_command);
-            called_start_grow_timer = false;
+            started_idle_timer = false;
           }
         }
       }
@@ -183,7 +183,7 @@ void executeCommand(String command) {
           position.set(x, y, z, roll, pitch, yaw);
         }
         SERIAL_OUTPUT.printf("rapid move parsing success; x, y, z is %f, %f, %f\n roll, pitch, yaw, speed are %f, %f, %f, %f.\n", x, y, z, roll, pitch, yaw, speed);
-        hexapod.rapidMove(position);
+        //hexapod.rapidMove(position);
       }
       else if (buffer[1].equals("1")) {
         for (uint8_t i = 0; i < cmd_line_word_count; i++) {
@@ -192,7 +192,7 @@ void executeCommand(String command) {
           position.set(x, y, z, roll, pitch, yaw);
         }
         SERIAL_OUTPUT.printf("walk setup parsing success; x, y, z is %f, %f, %f\n roll, pitch, yaw, speed are %f, %f, %f, %f.\n", x, y, z, roll, pitch, yaw, speed);
-        hexapod.walkSetup(position, speed);
+        //hexapod.walkSetup(position, speed);
       }
       else if (buffer[1].equals("9")) {
         for (uint8_t i = 0; i < cmd_line_word_count; i++) {
@@ -220,49 +220,49 @@ void executeCommand(String command) {
 }
 
 
-//check if we can make a full step with the commands at the top of the fifo
-_Bool canFifoOptimize() {
+//check if we can make a full step with the commands at the top of the command_queue
+_Bool canCommandQueueOptimize() {
   //cant optimize if we only have one step
-  if (fifo.length < 2) {
+  if (command_queue.length < 2) {
     return false;
   }
-  Position position = getPosFromCommand(fifo.readIndex(0));
+  Position position = getPosFromCommand(command_queue.readIndex(0));
   double step_size = hexapod.getDistance(position);
-  for (uint32_t i = 1; i < fifo.length; i++){
+  for (uint32_t i = 1; i < command_queue.length; i++){
       //if we hit a command that is not a step we stop the optimization. if current concatenation of steps is still too small we have to partially optimize
-      if ((step_size < STEP_THRESHOLD) and (!getCommandType(fifo.readIndex(i)).equals("step"))){
+      if ((step_size < STEP_THRESHOLD) and (!getCommandType(command_queue.readIndex(i)).equals("step"))){
         return false;
       }
-      Position next_position = getPosFromCommand(fifo.readIndex(i));
+      Position next_position = getPosFromCommand(command_queue.readIndex(i));
       position = position + next_position;
       step_size = hexapod.getDistance(position);
   } 
-  //if all of the commands in the fifo were steps but we are still below the threshold we will only be able to partially optimize
+  //if all of the commands in the command_queue were steps but we are still below the threshold we will only be able to partially optimize
   if (step_size < STEP_THRESHOLD) {
     return false;
   }
   return true;
 }
 
-//return concatenation of all steps at the head of the fifo
+//return concatenation of all steps at the head of the command_queue
 String getPartiallyOptimizedCommand() {
-  String command = fifo.dequeue();
-  for (uint32_t i = 0; i < fifo.length; i++) {
-    String next_command = fifo.readIndex(i);
+  String command = command_queue.dequeue();
+  for (uint32_t i = 0; i < command_queue.length; i++) {
+    String next_command = command_queue.readIndex(i);
     if (!getCommandType(next_command).equals("step")) {
       return command;
     }
     command = combineSteps(command, next_command);
-    fifo.dequeue(); //remove next_command from the fifo since we just read it
+    command_queue.dequeue(); //remove next_command from the command_queue since we just read it
   }
   return command;
 }
 
-//combine fifo commands to produce a full step
+//combine command_queue commands to produce a full step
 String getOptimizedCommand() {
-  String command = fifo.dequeue();
-  for (uint32_t i = 0; i < fifo.length; i++){
-    String next_command = fifo.readIndex(i);
+  String command = command_queue.dequeue();
+  for (uint32_t i = 0; i < command_queue.length; i++){
+    String next_command = command_queue.readIndex(i);
     command = combineSteps(command, next_command);
     double step_size = hexapod.getDistance(getPosFromCommand(command));
     if (step_size > STEP_THRESHOLD) {
@@ -273,7 +273,7 @@ String getOptimizedCommand() {
   return command; 
 }
 
-//check the first command in the fifo to see if it needs optimization
+//check the first command in the command_queue to see if it needs optimization
 _Bool checkCommand(String command) {
   String command_type = getCommandType(command);
   //so far we only optimize step commands
