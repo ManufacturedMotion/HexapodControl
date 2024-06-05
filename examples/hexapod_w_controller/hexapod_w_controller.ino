@@ -1,6 +1,6 @@
 #include "hexapod_controller.hpp"
 #include "hexapod.hpp"
-#include "FIFOCommandQueue.hpp"
+#include "command_queue.hpp"
 #include <math.h>
 #include <stdbool.h>
 Hexapod hexapod;
