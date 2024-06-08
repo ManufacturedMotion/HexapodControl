@@ -120,7 +120,7 @@ uint8_t Hexapod::linearMoveSetup(double x, double y, double z, double roll, doub
 	return linearMoveSetup(x, y, z, roll, pitch, yaw, target_speed, active_legs);
 }
 
-uint8_t Hexapod::legLinearMoveSetup(uint8_t leg, double x,  double y, double z, double target_speed, _Bool relative = false) {
+uint8_t Hexapod::legLinearMoveSetup(uint8_t leg, double x,  double y, double z, double target_speed, _Bool relative) {
 	ThreeByOne coord = ThreeByOne(x, y, z);
 	coord.rotateYaw(_home_yaws[leg-1]);
 	if (!relative) {
@@ -136,22 +136,17 @@ uint8_t Hexapod::legLinearMoveSetup(uint8_t leg, double x,  double y, double z, 
 	return legs[leg-1].linearMoveSetup(coord.values[0], coord.values[1], coord.values[2], target_speed, relative);
 }
 
-uint8_t Hexapod::legLinearMoveSetup(uint8_t leg, ThreeByOne end_coord, double target_speed, _Bool relative = false) {
+uint8_t Hexapod::legLinearMoveSetup(uint8_t leg, ThreeByOne end_coord, double target_speed, _Bool relative) {
 	return legLinearMoveSetup(leg, end_coord.values[0], end_coord.values[1], end_coord.values[2], target_speed, relative);
 }
 
 void Hexapod::opQueueTest() {
 	ThreeByOne coord1 = ThreeByOne(0.0,   0.0,   100.0);
-	ThreeByOne coord2 = ThreeByOne(0.0,   100.0, 100.0);
-	ThreeByOne coord3 = ThreeByOne(0.0,   0.0,   100.0);
-	ThreeByOne coord4 = ThreeByOne(0.0,   100.0, 100.0);
 	ThreeByOne coord5 = ThreeByOne(0.0,   0.0,   100.0);
 	for (uint8_t i = 0; i < NUM_LEGS; i++) {
 		_leg_queues[i].enqueue(coord1, 100.0, false);
-		_leg_queues[i].enqueue(coord2, 10.0, false);
-		_leg_queues[i].enqueue(coord3, 100.0, false);
-		_leg_queues[i].enqueue(coord4, 10.0, false);
-		_leg_queues[i].enqueue(coord5, 100.0, false);
+		_leg_queues[i].enqueue(ThreeByOne(0.0, 0.0, 0.0), 100.0, true, 1000);
+		_leg_queues[i].enqueue(coord5, 100.0, true);
 		Serial.printf("Leg %d queue length is %d\n", i, _leg_queues[i].length);
 	}
 }
@@ -202,6 +197,10 @@ double Hexapod::get_max_step_magnitude() {
 	return _current_step_permutation[_next_step_group % 2].magnitude() + MAX_STEP_MAGNITUDE;
 }
 
+// ThreeByOne Hexapod::get_max_step(ThreeByOne direction) {
+// 	return _current_step_permutation[_next_step_group % 2] * direction.unit_vector();
+// }
+
 uint8_t Hexapod::walkSetup(ThreeByOne relative_end_coord, double speed) {
 	ThreeByOne end_unit_vector = relative_end_coord / relative_end_coord.magnitude();
 	ThreeByOne distance_traveled = ThreeByOne();
@@ -210,21 +209,52 @@ uint8_t Hexapod::walkSetup(ThreeByOne relative_end_coord, double speed) {
 		ThreeByOne max_step_size = end_unit_vector * get_max_step_magnitude();
 		ThreeByOne distance_to_go = relative_end_coord - distance_traveled;
 		ThreeByOne this_step = (distance_to_go > max_step_size) ? ThreeByOne(max_step_size) : ThreeByOne(distance_to_go);
-		Serial.printf("Taking step: x:%f, y:%f, z:%f\n", this_step.values[0], this_step.values[1], this_step.values[2]);
+		// Serial.printf("Taking step: x:%f, y:%f, z:%f\n", this_step.values[0], this_step.values[1], this_step.values[2]);
 		stepSetup(this_step, speed);
 		distance_traveled += this_step;
 		counter++;
 	}
+	return counter;
+}
 
-	return 0;
+void Hexapod::wait(uint32_t time_ms) {
+	for (uint8_t i = 0; i < NUM_LEGS; i++) {
+		legs[i].wait(time_ms);
+	} 
 }
 
 uint8_t Hexapod::stepToNeutral(double speed) {
-	return 0;
-}
-
-uint8_t Hexapod::firstStepSetup(ThreeByOne relative_end_coord, double speed) {
-	return 0;
+	uint8_t retval = 0;
+	uint8_t num_segments = 3;
+	double segment_z_offsets[num_segments] = {-20.0, 0.0, 20.0};
+	ThreeByOne step_segment[num_segments];
+	Serial.printf("\nCurrent permutations:\nStep group 0:\n\tx:%f, y:%f z:%f\nStep group 1:\n\tx:%f, y:%f z:%f", 
+	_current_step_permutation[0].values[0], _current_step_permutation[0].values[1], _current_step_permutation[0].values[2],
+	_current_step_permutation[1].values[0], _current_step_permutation[1].values[1], _current_step_permutation[1].values[2]);
+	double step_path_length = 0.0;
+	for (uint8_t i = 0; i < NUM_STEP_GROUPS; i++) {
+		if (_current_step_permutation[i].magnitude() > 0.1) {
+			for (uint8_t j = 0; j < num_segments; j++) {
+				step_segment[j] = _current_step_permutation[i] / (-1.0 * double(num_segments));
+				step_segment[j].values[2] += segment_z_offsets[j];
+				step_path_length += step_segment[j].magnitude();
+			}
+			double speed_mult = step_path_length / _current_step_permutation[i].magnitude();
+			uint32_t move_time = uint32_t(step_path_length / (speed_mult * speed) * 1000.0);
+			for (uint8_t j = 0; j < NUM_LEGS / NUM_STEP_GROUPS; j++) {
+				for (uint8_t k = 0; k < num_segments; k++) {
+					//Apply to leg group i+1
+					_leg_queues[_step_groups[i % 2][j]-1].enqueue(step_segment[k], speed * speed_mult, true);
+				}
+				Serial.printf("Moving leg %d to neutral\n", _step_groups[(i+1) % 2][j]-1);
+				_leg_queues[_step_groups[(i+1) % 2][j]-1].enqueue(ThreeByOne(0.0, 0.0, 0.0), 0.0, true, move_time);
+			}
+			_current_step_permutation[i] = ThreeByOne();
+			retval += 1;
+		}
+	}
+	_neutral_position_flag = true;
+	return retval;
 }
 
 uint8_t Hexapod::stepSetup(double x, double y, double z, double speed) {
@@ -233,13 +263,12 @@ uint8_t Hexapod::stepSetup(double x, double y, double z, double speed) {
 }
 
 uint8_t Hexapod::stepSetup(ThreeByOne relative_end_coord, double speed) {
-	
+	_neutral_position_flag = false;
 	double linear_path_length = relative_end_coord.magnitude();
 	if (linear_path_length > get_max_step_magnitude()) {
 		Serial.printf("Step size too big, try again with a smaller step");
 		return 255; //Error code for too big step size
 	}
-	ThreeByOne current_coord = _current_pos.coord();
 	uint8_t num_step_segments = 5;
 	double step_z_offsets[num_step_segments] = {-20.0, -10.0, 0.0, 10.0, 20.0};
 	ThreeByOne step_segment[num_step_segments];// = {	ThreeByOne(0.0, 0.0, 0.0), ThreeByOne(0.0, 0.0, 0.0), ThreeByOne(0.0, 0.0, 0.0),
@@ -267,6 +296,18 @@ uint8_t Hexapod::stepSetup(ThreeByOne relative_end_coord, double speed) {
 	return 0;
 }
 
+uint8_t Hexapod::legWaitSetup(uint8_t leg, uint32_t wait_time) {
+	if (wait_time) {
+		legs[leg].wait(wait_time);
+		return 255;
+	}
+	return 0;
+}
+
+void Hexapod::returnToNeutral() {
+	_return_to_neutral_flag = true;
+}
+
 uint16_t Hexapod::comboMovePerform() {
 	// Return code is two 8 bit numbers
 	// 8 grand bits are number of legs that got new end positions
@@ -278,15 +319,28 @@ uint16_t Hexapod::comboMovePerform() {
 		}
 		else {
 			if (!_leg_queues[i].isEmpty()) {
-				legLinearMoveSetup(i+1, _leg_queues[i].head->end_pos, _leg_queues[i].head->speed, _leg_queues[i].head->relative);
-				if (DEBUG) {
-					Serial.printf("Leg %d moving to x:%f y:%f z:%f\nRelative:%d speed:%f\n",
-					i+1, _leg_queues[i].head->end_pos.values[0],
-					_leg_queues[i].head->end_pos.values[1], _leg_queues[i].head->end_pos.values[2],
-					_leg_queues[i].head->relative, _leg_queues[i].head->speed);
+				Operation * queue_head = _leg_queues[i].head;
+				Serial.println(queue_head->wait_time_ms);
+				legWaitSetup(i, queue_head->wait_time_ms);
+				if (!queue_head->wait_time_ms) {
+					legLinearMoveSetup(i+1, queue_head->end_pos, queue_head->speed, queue_head->relative);
+					if (DEBUG) {
+						Serial.printf("Leg %d moving to x:%f y:%f z:%f\nRelative:%d speed:%f\n",
+						i+1, _leg_queues[i].head->end_pos.values[0],
+						_leg_queues[i].head->end_pos.values[1], _leg_queues[i].head->end_pos.values[2],
+						_leg_queues[i].head->relative, _leg_queues[i].head->speed);
+					}
 				}
 				_leg_queues[i].dequeue();
 				retval += (1 << 8);
+			}
+		}
+	}
+	if (retval == 0) {
+		if (!_neutral_position_flag) {
+			if (_return_to_neutral_flag) {
+				_return_to_neutral_flag = false;
+				stepToNeutral(STEP_TO_NEUTRAL_SPEED);
 			}
 		}
 	}
@@ -314,9 +368,7 @@ uint8_t Hexapod::inverseKinematics(Position pos) {
 	for (uint8_t i = 0; i < NUM_LEGS; i++) {
 		active_legs[i] = true;
 	} 
-	inverseKinematics(pos, active_legs);
-
-	return 0;
+	return inverseKinematics(pos, active_legs);
 }
 
 uint8_t Hexapod::inverseKinematics(Position pos, _Bool active_legs[NUM_LEGS]) {

@@ -22,6 +22,7 @@
 			_Bool linearMoveSetup(double x,  double y, double z, double target_speed, _Bool relative = false);
 			uint8_t linearMovePerform();
 			_Bool isMoving();
+			void wait(uint32_t time_ms);
 
 		private:
 			uint8_t _leg_number;
@@ -36,7 +37,6 @@
 			double _next_cartesian[NUM_AXES_PER_LEG];
 			double _start_cartesian[NUM_AXES_PER_LEG];
 			double _end_cartesian[NUM_AXES_PER_LEG];
-			double _move_progress;
 			uint32_t _move_start_time; 
 			double _max_speed = 1000000.0;
 			uint32_t _move_time;

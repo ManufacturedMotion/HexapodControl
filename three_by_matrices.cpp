@@ -210,12 +210,12 @@ ThreeByOne ThreeByOne::operator/(double divisor){
     return result;
 }
 
-_Bool ThreeByOne::operator>(const ThreeByOne& right) {
+_Bool ThreeByOne::operator>(ThreeByOne& right) {
     return magnitude() > right.magnitude();
 }
 
 
-_Bool ThreeByOne::operator<(const ThreeByOne& right) {
+_Bool ThreeByOne::operator<(ThreeByOne& right) {
     return magnitude() < right.magnitude();
 }
 
@@ -223,4 +223,9 @@ void ThreeByOne::floorDivide(double divisor) {
     values[0] = floor(values[0] / divisor);
     values[1] = floor(values[0] / divisor);
     values[2] = floor(values[0] / divisor);
+}
+
+ThreeByOne ThreeByOne::unit_vector() {
+    ThreeByOne result = ThreeByOne(values[0], values[1], values[2]);
+    return result / result.magnitude();
 }

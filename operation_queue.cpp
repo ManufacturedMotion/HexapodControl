@@ -1,8 +1,8 @@
 #include <stdbool.h>
 #include "operation_queue.hpp"
 
-void OperationQueue::enqueue(ThreeByOne op_end_pos, double op_speed, _Bool op_relative) {
-	Operation* new_operation = new Operation(op_end_pos, op_speed, op_relative);
+void OperationQueue::enqueue(ThreeByOne op_end_pos, double op_speed, _Bool op_relative, uint32_t op_wait_time_ms) {
+	Operation* new_operation = new Operation(op_end_pos, op_speed, op_relative, op_wait_time_ms);
 	if (head == NULL) {
         head = new_operation;
 		head->next = NULL;
@@ -24,9 +24,10 @@ void OperationQueue::dequeue() {
     }
 }
 
-Operation::Operation(ThreeByOne op_end_pos, double op_speed, _Bool op_relative) {
+Operation::Operation(ThreeByOne op_end_pos, double op_speed, _Bool op_relative, uint32_t op_wait_time_ms) {
     end_pos = ThreeByOne(op_end_pos);
     speed = op_speed;
+    wait_time_ms = op_wait_time_ms;
     relative = op_relative;
 }
 

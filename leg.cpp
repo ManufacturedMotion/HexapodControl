@@ -34,11 +34,11 @@ _Bool Leg::inverseKinematics(double x, double y, double z) {
     if (!checkSafeCoords(x,y,z))
         return false; 
     double potential_results[3];
-    if (fabs(y < 0.0005)) {
-        if (x > 0.0005) {
+    if (fabs(y < 0.1)) {
+        if (x > 0.1) {
             potential_results[0] = M_PI / 2.0;
         }
-        else if (x < -0.0005) {
+        else if (x < -0.1) {
             potential_results[0] = -M_PI / 2.0;
         }
         else {
@@ -100,6 +100,7 @@ _Bool Leg::rapidMove(double x,  double y, double z) {
 uint8_t Leg::linearMovePerform() {
     double move_progress = (float)(millis() - _move_start_time) / ((float) _move_time);
     if (move_progress <= 1.0) {
+        // Serial.printf("Move start time: %d, _move_time %d\n", millis() - _move_start_time, _move_time);
         double next_x = move_progress * (_end_cartesian[0] - _start_cartesian[0]) + _start_cartesian[0];
         double next_y = move_progress * (_end_cartesian[1] - _start_cartesian[1]) + _start_cartesian[1];
         double next_z = move_progress * (_end_cartesian[2] - _start_cartesian[2]) + _start_cartesian[2];
@@ -110,6 +111,18 @@ uint8_t Leg::linearMovePerform() {
         _moving_flag = false;
     }
     return 0;
+}
+
+void Leg::wait(uint32_t time_ms) {
+   
+    for (uint8_t i = 0; i < NUM_AXES_PER_LEG; i++) {
+        _start_cartesian[i] = _current_cartesian[i];
+        _end_cartesian[i] = _current_cartesian[i];
+    }
+    _move_start_time = millis();
+    _moving_flag = true;
+    _move_time = time_ms;
+    // Serial.printf("Wait for %d ms\n", _move_time);
 }
 
 
@@ -132,7 +145,7 @@ _Bool Leg::isMoving() {
     return _moving_flag;
 }
 
-_Bool Leg::linearMoveSetup(double x,  double y, double z, double target_speed, _Bool relative = false) {
+_Bool Leg::linearMoveSetup(double x,  double y, double z, double target_speed, _Bool relative) {
     uint8_t retval = 0;
     double speed = target_speed;
     if (target_speed > _max_speed) {
@@ -150,7 +163,6 @@ _Bool Leg::linearMoveSetup(double x,  double y, double z, double target_speed, _
     //     _end_cartesian[1] += _current_cartesian[1];
     //     _end_cartesian[2] += _current_cartesian[2];
     // }
-    _move_progress = 0;
     _move_start_time = millis();
     _moving_flag = true;
     double x_dist = _start_cartesian[0] - _end_cartesian[0];
