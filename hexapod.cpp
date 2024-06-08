@@ -53,9 +53,17 @@ uint8_t Hexapod::inverseKinematics(double x, double y, double z, double roll, do
 }
 
 void Hexapod::rapidMove(double x, double y, double z, double roll, double pitch, double yaw) {
-	inverseKinematics(x, y, z, roll, pitch, yaw);
-	moveLegs();
-	_current_pos.set(x, y, z, roll, pitch, yaw);
+	Position pos;
+	pos.set(x, y, z, roll, pitch, yaw);
+	rapidMove(pos);
+}
+
+void Hexapod::rapidMove(Position next_pos) {
+	_Bool active_legs[NUM_LEGS];
+	for (uint8_t i = 0; i < NUM_LEGS; i++) {
+		active_legs[i] = true;
+	}
+	rapidMove(next_pos, active_legs);
 }
 
 void Hexapod::rapidMove(Position next_pos, _Bool active_legs[NUM_LEGS]) {
@@ -188,11 +196,6 @@ void Hexapod::moveLegs() {
 	}
 }
 
-uint8_t Hexapod::walkSetup(double x, double y, double z, double speed) {
-	ThreeByOne relative_end_coord = ThreeByOne(x, y, z);
-	return walkSetup(relative_end_coord, speed);
-}
-
 double Hexapod::get_max_step_magnitude() {
 	return _current_step_permutation[_next_step_group % 2].magnitude() + MAX_STEP_MAGNITUDE;
 }
@@ -201,7 +204,18 @@ double Hexapod::get_max_step_magnitude() {
 // 	return _current_step_permutation[_next_step_group % 2] * direction.unit_vector();
 // }
 
-uint8_t Hexapod::walkSetup(ThreeByOne relative_end_coord, double speed) {
+uint8_t Hexapod::walkSetup(double x, double y, double speed, _Bool return_to_neutral) {
+	ThreeByOne relative_end_coord = ThreeByOne(x, y, 0.0);
+	return walkSetup(relative_end_coord, speed);
+}
+
+uint8_t Hexapod::walkSetup(Position relative_end_pos, double speed, _Bool return_to_neutral) {
+	return walkSetup(relative_end_pos.coord(), speed, return_to_neutral);
+}
+
+
+uint8_t Hexapod::walkSetup(ThreeByOne relative_end_coord, double speed, _Bool return_to_neutral) {
+	relative_end_coord.values[2] = 0.0;
 	ThreeByOne end_unit_vector = relative_end_coord / relative_end_coord.magnitude();
 	ThreeByOne distance_traveled = ThreeByOne();
 	uint32_t counter = 0;
@@ -209,7 +223,10 @@ uint8_t Hexapod::walkSetup(ThreeByOne relative_end_coord, double speed) {
 		ThreeByOne max_step_size = end_unit_vector * get_max_step_magnitude();
 		ThreeByOne distance_to_go = relative_end_coord - distance_traveled;
 		ThreeByOne this_step = (distance_to_go > max_step_size) ? ThreeByOne(max_step_size) : ThreeByOne(distance_to_go);
-		// Serial.printf("Taking step: x:%f, y:%f, z:%f\n", this_step.values[0], this_step.values[1], this_step.values[2]);
+		if (DEBUG) {
+			Serial.printf("Taking step: x:%f, y:%f, z:%f, speed: %f\n", this_step.values[0], this_step.values[1], this_step.values[2], speed);
+
+		}
 		stepSetup(this_step, speed);
 		distance_traveled += this_step;
 		counter++;
@@ -228,9 +245,11 @@ uint8_t Hexapod::stepToNeutral(double speed) {
 	uint8_t num_segments = 3;
 	double segment_z_offsets[num_segments] = {-20.0, 0.0, 20.0};
 	ThreeByOne step_segment[num_segments];
-	Serial.printf("\nCurrent permutations:\nStep group 0:\n\tx:%f, y:%f z:%f\nStep group 1:\n\tx:%f, y:%f z:%f", 
-	_current_step_permutation[0].values[0], _current_step_permutation[0].values[1], _current_step_permutation[0].values[2],
-	_current_step_permutation[1].values[0], _current_step_permutation[1].values[1], _current_step_permutation[1].values[2]);
+	if (DEBUG) {
+		Serial.printf("\nCurrent permutations:\nStep group 0:\n\tx:%f, y:%f z:%f\nStep group 1:\n\tx:%f, y:%f z:%f", 
+		_current_step_permutation[0].values[0], _current_step_permutation[0].values[1], _current_step_permutation[0].values[2],
+		_current_step_permutation[1].values[0], _current_step_permutation[1].values[1], _current_step_permutation[1].values[2]);
+	}
 	double step_path_length = 0.0;
 	for (uint8_t i = 0; i < NUM_STEP_GROUPS; i++) {
 		if (_current_step_permutation[i].magnitude() > 0.1) {
@@ -263,6 +282,7 @@ uint8_t Hexapod::stepSetup(double x, double y, double z, double speed) {
 }
 
 uint8_t Hexapod::stepSetup(ThreeByOne relative_end_coord, double speed) {
+	relative_end_coord.values[2] = 0.0;
 	_neutral_position_flag = false;
 	double linear_path_length = relative_end_coord.magnitude();
 	if (linear_path_length > get_max_step_magnitude()) {
@@ -344,6 +364,7 @@ uint16_t Hexapod::comboMovePerform() {
 			}
 		}
 	}
+	linearMovePerform();
 	return retval;
 }
 
