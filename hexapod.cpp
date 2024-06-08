@@ -204,15 +204,16 @@ double Hexapod::get_max_step_magnitude() {
 // 	return _current_step_permutation[_next_step_group % 2] * direction.unit_vector();
 // }
 
+
+
 uint8_t Hexapod::walkSetup(double x, double y, double speed, _Bool return_to_neutral) {
 	ThreeByOne relative_end_coord = ThreeByOne(x, y, 0.0);
-	return walkSetup(relative_end_coord, speed);
+	return walkSetup(relative_end_coord, speed, return_to_neutral);
 }
 
 uint8_t Hexapod::walkSetup(Position relative_end_pos, double speed, _Bool return_to_neutral) {
 	return walkSetup(relative_end_pos.coord(), speed, return_to_neutral);
 }
-
 
 uint8_t Hexapod::walkSetup(ThreeByOne relative_end_coord, double speed, _Bool return_to_neutral) {
 	relative_end_coord.values[2] = 0.0;
@@ -225,11 +226,13 @@ uint8_t Hexapod::walkSetup(ThreeByOne relative_end_coord, double speed, _Bool re
 		ThreeByOne this_step = (distance_to_go > max_step_size) ? ThreeByOne(max_step_size) : ThreeByOne(distance_to_go);
 		if (DEBUG) {
 			Serial.printf("Taking step: x:%f, y:%f, z:%f, speed: %f\n", this_step.values[0], this_step.values[1], this_step.values[2], speed);
-
 		}
 		stepSetup(this_step, speed);
 		distance_traveled += this_step;
 		counter++;
+		if (return_to_neutral) {
+			stepToNeutral(speed);
+		}
 	}
 	return counter;
 }
@@ -250,6 +253,7 @@ uint8_t Hexapod::stepToNeutral(double speed) {
 		_current_step_permutation[0].values[0], _current_step_permutation[0].values[1], _current_step_permutation[0].values[2],
 		_current_step_permutation[1].values[0], _current_step_permutation[1].values[1], _current_step_permutation[1].values[2]);
 	}
+	
 	double step_path_length = 0.0;
 	for (uint8_t i = 0; i < NUM_STEP_GROUPS; i++) {
 		if (_current_step_permutation[i].magnitude() > 0.1) {
@@ -283,6 +287,17 @@ uint8_t Hexapod::stepSetup(double x, double y, double z, double speed) {
 
 uint8_t Hexapod::stepSetup(ThreeByOne relative_end_coord, double speed) {
 	relative_end_coord.values[2] = 0.0;
+	ThreeByOne step_unit_vector = relative_end_coord.unit_vector();
+
+	if (_previous_step_unit_vector * -1.0 != step_unit_vector) {
+		if (_previous_step_unit_vector != step_unit_vector) {
+			stepToNeutral(speed);
+		}
+	}
+	else {
+		_next_step_group--;
+	}
+
 	_neutral_position_flag = false;
 	double linear_path_length = relative_end_coord.magnitude();
 	if (linear_path_length > get_max_step_magnitude()) {
@@ -291,8 +306,7 @@ uint8_t Hexapod::stepSetup(ThreeByOne relative_end_coord, double speed) {
 	}
 	uint8_t num_step_segments = 5;
 	double step_z_offsets[num_step_segments] = {-20.0, -10.0, 0.0, 10.0, 20.0};
-	ThreeByOne step_segment[num_step_segments];// = {	ThreeByOne(0.0, 0.0, 0.0), ThreeByOne(0.0, 0.0, 0.0), ThreeByOne(0.0, 0.0, 0.0),
-												//	ThreeByOne(0.0, 0.0, 0.0), ThreeByOne(0.0, 0.0, 0.0);
+	ThreeByOne step_segment[num_step_segments];
 	double step_path_length = 0.0;
 	for (uint8_t i = 0; i < num_step_segments; i++) {
 		step_segment[i] = relative_end_coord / double(num_step_segments);
@@ -310,7 +324,7 @@ uint8_t Hexapod::stepSetup(ThreeByOne relative_end_coord, double speed) {
 	}
 	_current_step_permutation[(_next_step_group + 1) % NUM_STEP_GROUPS] += (relative_end_coord * -1.0);
 	_current_step_permutation[_next_step_group % NUM_STEP_GROUPS] += relative_end_coord;
-	
+	_previous_step_unit_vector = ThreeByOne(step_unit_vector);
 
 	_next_step_group++;
 	return 0;

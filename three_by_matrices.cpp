@@ -219,6 +219,18 @@ _Bool ThreeByOne::operator<(ThreeByOne& right) {
     return magnitude() < right.magnitude();
 }
 
+_Bool ThreeByOne::operator==(ThreeByOne& right) {
+    if ((fabs(values[0] - right.values[0]) + fabs(values[1] - right.values[1]) + fabs(values[2] - right.values[2])) < 0.1) {
+        return true;
+    }
+    return false;
+}
+
+_Bool ThreeByOne::operator!=(ThreeByOne& right) {
+    return !((*this) == right);
+
+}
+
 void ThreeByOne::floorDivide(double divisor) {
     values[0] = floor(values[0] / divisor);
     values[1] = floor(values[0] / divisor);
