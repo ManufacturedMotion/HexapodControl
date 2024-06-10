@@ -82,7 +82,7 @@ _Bool commandQueue::isIdle() {
 
 _Bool commandQueue::isIdleTimer() {
 
-  if ((millis() - _expand_timer_start) > 20){
+  if ((millis() - _expand_timer_start) > FIFO_IDLE_THRESHOLD){
     return false;
   }
   else {

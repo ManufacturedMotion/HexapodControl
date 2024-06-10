@@ -5,7 +5,7 @@
 #ifndef HEXA_CONFIG
 #define HEXA_CONFIG
  
-  #define STEP_THRESHOLD 2000.0
+  #define STEP_THRESHOLD 199 //2000.0
   #define FIFO_IDLE_THRESHOLD 1000
 	
 	#ifdef DANNY	
