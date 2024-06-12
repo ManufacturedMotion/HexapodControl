@@ -19,7 +19,6 @@ String split_command[bufferSize];
 uint32_t num_words = 0;
 double x = 0, y = 0, z = 200, roll = 0, pitch = 0, yaw = 0, speed = 100;
 _Bool wait = false;
-_Bool return_to_neutral = false;
 
 Position position;
 commandQueue command_queue;
@@ -85,7 +84,6 @@ void loop() {
             SERIAL_OUTPUT.print("command_queue growing complete - still cannot make a full step. Getting partial command\n");
             current_command = getOptimizedCommand();
             SERIAL_OUTPUT.print("partial step formed: " + current_command + ".\n");
-            return_to_neutral = true;
             executeCommand(current_command);
             started_idle_timer = false; 
           }
@@ -94,7 +92,6 @@ void loop() {
             SERIAL_OUTPUT.print("command_queue growing complete - full command could be made\n");
             current_command = getOptimizedCommand();
             SERIAL_OUTPUT.print("full step formed: " + current_command + ".\n");
-            return_to_neutral = false;
             executeCommand(current_command);
             started_idle_timer = false;
           }
@@ -202,7 +199,7 @@ void executeCommand(String command) {
           position.set(x, y, z, roll, pitch, yaw);
         }
         SERIAL_OUTPUT.printf("walk setup parsing success; x, y, z is %f, %f, %f\n roll, pitch, yaw, speed are %f, %f, %f, %f.\n", x, y, z, roll, pitch, yaw, speed);
-        hexapod.walkSetup(position, speed, return_to_neutral);
+        hexapod.walkSetup(position, speed);
       }
       else if (buffer[1].equals("9")) {
         for (uint8_t i = 0; i < cmd_line_word_count; i++) {
