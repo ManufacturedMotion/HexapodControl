@@ -193,7 +193,7 @@ void executeCommand(String command) {
           position.set(x, y, z, roll, pitch, yaw);
         }
         SERIAL_OUTPUT.printf("rapid move parsing success; x, y, z is %f, %f, %f\n roll, pitch, yaw, speed are %f, %f, %f, %f.\n", x, y, z, roll, pitch, yaw, speed);
-        //hexapod.rapidMove(position);
+        hexapod.rapidMove(position);
       }
       else if (buffer[1].equals("1")) {
         for (uint8_t i = 0; i < cmd_line_word_count; i++) {
