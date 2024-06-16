@@ -18,7 +18,7 @@ String buffer[bufferSize];
 String split_command[bufferSize];
 uint32_t num_words = 0;
 double x = 0, y = 0, z = 200, roll = 0, pitch = 0, yaw = 0, speed = 100;
-bool wait = false;
+_Bool wait = false;
 
 Position position;
 commandQueue command_queue;
@@ -50,7 +50,7 @@ void loop() {
 
     //TODO - need to find fix for hexapod.isBusy() - seems to get stuck at 1
   
-    if (hexapod.isBusy() || wait) {
+    if (hexapod.isBusy()) {
 
     } else {
       //set wait to default of false & get the command from the command_queue after checking for optimizations
@@ -86,7 +86,6 @@ void loop() {
             SERIAL_OUTPUT.print("partial step formed: " + current_command + ".\n");
             executeCommand(current_command);
             started_idle_timer = false; 
-            //TODO - call Zacks return to idle move function 
           }
           //otherwise we have a set of commands in the command_queue that now combine to meet our step threshold
           else {
@@ -101,7 +100,7 @@ void loop() {
     } 
   }
   //call move every iteration of loop
-  hexapod.linearMovePerform();
+  hexapod.comboMovePerform();
 }
 
 //function to split string on specified substring
@@ -191,7 +190,7 @@ void executeCommand(String command) {
           position.set(x, y, z, roll, pitch, yaw);
         }
         SERIAL_OUTPUT.printf("rapid move parsing success; x, y, z is %f, %f, %f\n roll, pitch, yaw, speed are %f, %f, %f, %f.\n", x, y, z, roll, pitch, yaw, speed);
-        //hexapod.rapidMove(position);
+        hexapod.rapidMove(position);
       }
       else if (buffer[1].equals("1")) {
         for (uint8_t i = 0; i < cmd_line_word_count; i++) {
@@ -200,7 +199,7 @@ void executeCommand(String command) {
           position.set(x, y, z, roll, pitch, yaw);
         }
         SERIAL_OUTPUT.printf("walk setup parsing success; x, y, z is %f, %f, %f\n roll, pitch, yaw, speed are %f, %f, %f, %f.\n", x, y, z, roll, pitch, yaw, speed);
-        //hexapod.walkSetup(position, speed);
+        hexapod.walkSetup(position, speed);
       }
       else if (buffer[1].equals("9")) {
         for (uint8_t i = 0; i < cmd_line_word_count; i++) {
@@ -274,10 +273,18 @@ String getOptimizedCommand() {
 }
 
 String combineSteps(String step_1, String step_2) {
+  if (step_2.equals(""))
+    return step_1;
   Position new_pos = getPosFromCommand(step_1) + getPosFromCommand(step_2);
   float speed_1 = step_1.substring(step_1.indexOf('S') + 1).toFloat();
   float speed_2 = step_2.substring(step_2.indexOf('S') + 2).toFloat();
-  double new_speed = min(speed_1, speed_2);
+  double new_speed = 0;
+  if (speed_2 == 0) {
+    new_speed = speed_1;
+  }
+  else {
+    new_speed = min(speed_1, speed_2);
+  }
   bool new_wait = 1;
   String new_step = "G1 X" + String(new_pos.X) + " Y" + String(new_pos.Y) + " Z" + String(new_pos.Z) + " R" + String(new_pos.roll) + " P" + String(new_pos.pitch) + " W" + String(new_pos.yaw) + " S" + String(new_speed) + " H" + String(new_wait);
   return new_step;
@@ -287,7 +294,6 @@ String combineSteps(String step_1, String step_2) {
 String getCommandType(String command) {
   String ret_val = "unknown";
   splitString(command, ' ', split_command, num_words);
-  //TODO - ask Zack - do we only optimize G1 since this is walking or are we optimizing all gcode formatted?
   if (split_command[0].toLowerCase().equals("g1")) {
    ret_val = "step"; 
   }

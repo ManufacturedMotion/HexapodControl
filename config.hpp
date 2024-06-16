@@ -5,8 +5,8 @@
 #ifndef HEXA_CONFIG
 #define HEXA_CONFIG
  
-  #define STEP_THRESHOLD 2000.0
-  #define FIFO_IDLE_THRESHOLD 1000
+  #define STEP_THRESHOLD 40 
+  #define FIFO_IDLE_THRESHOLD 100
 	
 	#ifdef DANNY	
 		#define PWM_PINS {{5, 6, 7}, {2, 3, 4}, {8, 9, 10},  {11, 12, 13}, {14, 15, 18}, {19, 22, 23}}
